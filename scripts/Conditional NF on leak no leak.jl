@@ -1,10 +1,5 @@
 using DrWatson
-# @quickactivate "wavelet_gen"
-# import Pkg; Pkg.instantiate()
-
-# include(projectdir("src/utils.jl"))
-
-#import wavelet_gen
+@quickactivate "Domain_transfer"
 using Flux
 using LinearAlgebra
 using Random
