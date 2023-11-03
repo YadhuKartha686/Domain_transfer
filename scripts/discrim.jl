@@ -152,7 +152,7 @@ end
 
 
 #Loading Data
-data_path= "/home/ykartha6/juliacode/CompassShot.jld2"
+data_path= "/data/CompassShot.jld2"
 
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
@@ -228,7 +228,7 @@ for e=1:n_epochs
         plt.ylabel("value")
         plt.legend()
         plt.title("Loss per update")
-        plt.savefig("/home/ykartha6/juliacode/figures for dis/loss batch $b.png")
+        plt.savefig("/plot/loss batch $b.png")
         plt.close()
 
 
@@ -237,7 +237,7 @@ for e=1:n_epochs
         plt.ylabel("value")
         plt.legend()
         plt.title("acc per update")
-        plt.savefig("/home/ykartha6/juliacode/figures for dis/acc batch $b.png")
+        plt.savefig("/plot/acc batch $b.png")
         plt.close()
 
     end
@@ -277,7 +277,7 @@ for e=1:n_epochs
     plt.ylabel("value")
     plt.legend()
     plt.title("Loss per epoch")
-    plt.savefig("/home/ykartha6/juliacode/figures for dis/loss $e.png")
+    plt.savefig("/plot/loss $e.png")
     plt.close()
 
 
@@ -287,7 +287,7 @@ for e=1:n_epochs
     plt.ylabel("value")
     plt.legend()
     plt.title("acc per epoch")
-    plt.savefig("/home/ykartha6/juliacode/figures for dis/acc $e.png")
+    plt.savefig("/plot/acc $e.png")
     plt.close()
 end
 
@@ -297,7 +297,7 @@ plt.xlabel("epoch")
 plt.ylabel("value")
 plt.legend()
 plt.title("Loss per epoch")
-plt.savefig("/home/ykartha6/juliacode/figures for dis/loss.png")
+plt.savefig("/plot/loss.png")
 plt.close()
 
 
@@ -307,5 +307,5 @@ plt.xlabel("epoch")
 plt.ylabel("value")
 plt.legend()
 plt.title("acc per epoch")
-plt.savefig("/home/ykartha6/juliacode/figures for dis/acc.png")
+plt.savefig("/plot/acc.png")
 plt.close()

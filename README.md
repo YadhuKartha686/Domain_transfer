@@ -28,3 +28,8 @@ using DrWatson
 @quickactivate "Domain_transfer"
 ```
 which auto-activate the project and enable local path handling from DrWatson.
+
+
+```
+scp -r Domain_transfer/ ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/
+```
