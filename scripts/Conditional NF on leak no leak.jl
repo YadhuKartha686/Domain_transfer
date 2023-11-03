@@ -18,7 +18,7 @@ using StatsBase
 using Distributions
 using Images
 matplotlib.use("Agg");
-plot_path = plotsdir("/plots/");
+plot_path = plotsdir();
 
 Random.seed!(1234)
 # Y_train, X_train, Y_val, X_val, Y_test, X_test = get_data_train_64_gen()
@@ -55,8 +55,8 @@ end
   
   
   #Loading Data
-data_path= "/data/CompassShot.jld2"
-  
+data_path= "data/CompassShot.jld2"
+# datadir(CompassShot.jld2)
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
   
@@ -297,12 +297,12 @@ for e=1:n_epochs# epoch loop
 
         plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=1.0,cbar=true)
         plt.title("Shot record pred ( vel + den) $e")
-        plt.savefig("/plots/Shot_rec/vel+den$e.png")
+        plt.savefig("plots/Shot_rec/vel+den$e.png")
         plt.close()
 
         plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=1.0,cbar=true)
         plt.title("Shot record pred ( vel) $e")
-        plt.savefig("/plots/Shot_rec/vel$e.png")
+        plt.savefig("plots/Shot_rec/vel$e.png")
         plt.close()
 
 
