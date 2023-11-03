@@ -55,7 +55,7 @@ end
   
   
   #Loading Data
-data_path= "data/CompassShot.jld2"
+data_path= "./data/CompassShot.jld2"
 # datadir(CompassShot.jld2)
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
