@@ -207,11 +207,11 @@ for e=1:n_epochs# epoch loop
 	        Base.flush(Base.stdout)
             plt.plot(loss)
             plt.title("loss $b")
-            plt.savefig("plots/Shot_rec/loss$e.png")
+            plt.savefig("./plots/Shot_rec/loss$e.png")
             plt.close()
             plt.plot(logdet_train)
             plt.title("logdet $b")
-            plt.savefig("plots/Shot_rec/logdet$e.png")
+            plt.savefig("./plots/Shot_rec/logdet$e.png")
             plt.close()
     	end
     end
@@ -305,12 +305,12 @@ for e=1:n_epochs# epoch loop
 
         plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=1.0,cbar=true)
         plt.title("Shot record pred ( vel + den) $e")
-        plt.savefig("plots/Shot_rec/vel+den$e.png")
+        plt.savefig("./plots/Shot_rec/vel+den$e.png")
         plt.close()
 
         plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=1.0,cbar=true)
         plt.title("Shot record pred ( vel) $e")
-        plt.savefig("plots/Shot_rec/vel$e.png")
+        plt.savefig("./plots/Shot_rec/vel$e.png")
         plt.close()
 
 
