@@ -95,7 +95,7 @@ end
 train_x1 = normalize_images(train_x1)
 test_x1 = normalize_images(test_x1)
 # Choose params
-batch_size = 32
+batch_size = 16
 nx,ny = 2048, 512
 N = nx*ny;
 
