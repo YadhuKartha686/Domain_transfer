@@ -45,9 +45,9 @@ function normalize_images(data)
     num_images, height, width, channels = size(data)
     
     for i in 1:num_images
-        min_vals = minimum(data[i, :, :, :], dims=(1, 2, 3))
-        max_vals = maximum(data[i, :, :, :], dims=(1, 2, 3))
-        data[i, :, :, :] .= (data[i, :, :, :] .- min_vals) ./ (max_vals .- min_vals)
+        min_vals = minimum(data[:, :, :, i])
+        max_vals = maximum(data[:, :, :, i])
+        data[:, :, :, i] .= (data[:, :, :, i] .- min_vals) ./ (max_vals .- min_vals)
     end
     
     return data
@@ -92,8 +92,8 @@ for i=1:300
 end
 
 
-train_x1 = normalize_images(train_x1)
-test_x1 = normalize_images(test_x1)
+# train_x1 = normalize_images(train_x1)
+# test_x1 = normalize_images(test_x1)
 # Choose params
 batch_size = 8
 nx,ny = 2048, 512
@@ -303,12 +303,17 @@ for e=1:n_epochs# epoch loop
         # ZX_noise_i = randn(Float32, 2048,512,1,2)|> device
         # shot_rec[:,:,:,3:4] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
 
-        plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=1.0,cbar=true)
+        plot_sdata(XAD[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plt.title("Shot record train ( vel + den) $e")
+        plt.savefig("../plots/Shot_rec/vel+den$e.png")
+        plt.close()
+
+        plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den$e.png")
         plt.close()
 
-        plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=1.0,cbar=true)
+        plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel) $e")
         plt.savefig("../plots/Shot_rec/vel$e.png")
         plt.close()
