@@ -111,7 +111,7 @@ lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
 noise_lev_x  = 0.005f0
-noise_lev_y  = randn(Float32,(2048,512,1,1))./1000
+noise_lev_y  = randn(Float32,(2048,512,1,batch_size))./1000
 split_scales = true
 
 #User params
@@ -181,7 +181,7 @@ for e=1:n_epochs# epoch loop
 	        Y = train_Y[:, :, :, idx_e[:,b]];
 	        X .+= noise_lev_x*randn(Float32, size(X));
             # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
-			Y .+= noise_lev_y*randn(Float32, size(Y));
+			Y = Y + noise_lev_y;
       
 	        # Forward pass of normalizing flow
 	        Zx, Zy, lgdet = G.forward(X|> device, Y|> device)
