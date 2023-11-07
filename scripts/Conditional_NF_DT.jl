@@ -181,7 +181,7 @@ for e=1:n_epochs# epoch loop
 	        Y = train_Y[:, :, :, idx_e[:,b]];
 	        X .+= noise_lev_x*randn(Float32, size(X));
             # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
-            
+
 			Y = Y + noise_lev_y;
       
 	        # Forward pass of normalizing flow
@@ -241,7 +241,7 @@ for e=1:n_epochs# epoch loop
             for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
                 x = test_x[:,:,:,ind:ind] 
                 y = test_y[:,:,:,ind:ind]
-                y .+= noise_lev_y*randn(Float32, size(y));
+                y += noise_lev_y;
         
                 # make samples from posterior for train sample 
                 X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
@@ -292,6 +292,7 @@ for e=1:n_epochs# epoch loop
         # XA = train_x1[:,:,:,1:8]
 
         YAD = train_Y[:,:,:,1:8]
+        YAD = YAD + noise_lev_y
         # YA = train_Y[:,:,:,4:5]
 
         shot_rec = zeros(Float32,2048,512,1,8)
