@@ -152,7 +152,7 @@ end
 
 
 #Loading Data
-data_path= "/data/CompassShot.jld2"
+data_path= "../data/CompassShot.jld2"
 
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
@@ -179,8 +179,8 @@ num_classes = maximum(train_y) + 1
 # Perform one-hot encoding using Flux.onehotbatch
 onehot_labels = Flux.onehotbatch(train_y, 0:num_classes-1)
 onehot_labels_test = Flux.onehotbatch(test_y, 0:num_classes-1)
-train_x = normalize_images(train_x)
-test_x = normalize_images(test_x)
+# train_x = normalize_images(train_x)
+# test_x = normalize_images(test_x)
 n_train = size(train_x)[end]
 n_test = size(test_x)[end]-1
 batch_size=2

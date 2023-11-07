@@ -305,7 +305,7 @@ for e=1:n_epochs# epoch loop
 
         plot_sdata(XAD[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record train ( vel + den) $e")
-        plt.savefig("../plots/Shot_rec/vel+den$e.png")
+        plt.savefig("../plots/Shot_rec/vel+den train$e.png")
         plt.close()
 
         plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
