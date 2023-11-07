@@ -241,7 +241,7 @@ for e=1:n_epochs# epoch loop
             for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
                 x = test_x[:,:,:,ind:ind] 
                 y = test_y[:,:,:,ind:ind]
-                y += noise_lev_y;
+                y .+= randn(Float32)*randn(Float32, size(y))./1000;
         
                 # make samples from posterior for train sample 
                 X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
