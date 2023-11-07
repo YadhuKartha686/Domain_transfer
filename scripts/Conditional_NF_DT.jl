@@ -181,6 +181,7 @@ for e=1:n_epochs# epoch loop
 	        Y = train_Y[:, :, :, idx_e[:,b]];
 	        X .+= noise_lev_x*randn(Float32, size(X));
             # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
+            
 			Y = Y + noise_lev_y;
       
 	        # Forward pass of normalizing flow
