@@ -25,42 +25,38 @@ data_path= "../data/CompassShot.jld2"
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
   
-test_x1 = zeros(Float32, 2048, 512, 1,301)
-  
-for i=1:301
+test_xA = zeros(Float32, 2048, 512, 1,148)
+test_xB = zeros(Float32, 2048, 512, 1,148)
+train_xA = zeros(Float32, 2048, 512, 1,752)
+train_xB = zeros(Float32, 2048, 512, 1,752)
+
+train_YA = ones(Float32,2048,512,1,752)
+train_YB = ones(Float32,2048,512,1,752).*2
+test_YA = ones(Float32,2048,512,1,148)
+test_YB = ones(Float32,2048,512,1,148).*2
+
+indices_of_A = findall(x -> x == 0.0, train_y[:,1])
+indices_of_B = findall(x -> x == 1.0, train_y[:,1])
+
+for i=1:148
     sigma = 1.0
-    test_x1[:,:,:,i] = imresize(imfilter(train_X[:,:,i+1499],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-end
-test_y = train_y[1500:end,:]
+    test_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[752+i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
+    test_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[752+i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
+end 
+
   
-  
-train_x1 = zeros(Float32, 2048, 512, 1,1504)
-  
-for i=1:1504
+for i=1:752
     sigma = 1.0
-    train_x1[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-end
-  
-train_y = train_y[1:1504,:]
-train_Y = ones(Float32,2048,512,1,1504)
-for i=1:1504
-    if train_y[i,1]==1.0
-        train_Y[:,:,:,i]= train_Y[:,:,:,i] .*2
-    end
+    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
 end
 
-test_Y = ones(Float32,2048,512,1,300)
-for i=1:300
-    if test_y[i,1]==1.0
-        test_Y[:,:,:,i]=test_Y[:,:,:,i] .* 2
-    end
-end
 
 batch_size = 8
 nx,ny = 2048, 512
 N = nx*ny;
 
-n_train = 1504
+n_train = 752
 
 n_batches = cld(n_train,batch_size)
 
@@ -228,13 +224,19 @@ optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), Cl
 
 # Main training loop
 for e=1:n_epochs# epoch loop
-    idx_e = reshape(randperm(n_train), batch_size, n_batches)
+    idx_eA = reshape(randperm(n_train), batch_size, n_batches)
+    idx_eB = reshape(randperm(n_train), batch_size, n_batches)
     for b = 1:n_batches # batch loop
     	@time begin
-	        X = train_x1[:, :, :, idx_e[:,b]];
-	        Y = train_Y[:, :, :, idx_e[:,b]];
-	        X .+= noise_lev_x*randn(Float32, size(X));
-            Y = Y + noise_lev_y;
+            XA = train_xA[:, :, :, idx_eA[:,b]];
+            YA = train_YA[:, :, :, idx_eA[:,b]];
+            XA .+= noise_lev_x*randn(Float32, size(XA));
+            YA = YA + noise_lev_y;
+
+            XB = train_xB[:, :, :, idx_eB[:,b]];
+            YB = train_YB[:, :, :, idx_eB[:,b]];
+            XB .+= noise_lev_x*randn(Float32, size(XB));
+            YB = YB + noise_lev_y;  
         
         
             # Compute discriminator loss
