@@ -261,15 +261,28 @@ for e=1:n_epochs# epoch loop
             Flux.Optimise.update!(optimizer_db, discriminatorB_params,dB_grads)
 
             # Compute generator loss
-            g_grads = Flux.gradient(generator_params) do
-                fake_outputA = discriminatorA(fake_imagesAfromB)
-                fake_outputB = discriminatorB(fake_imagesBfromA)
-                lossA = Genloss(fake_outputA)
-                lossB = Genloss(fake_outputB)
-                ml = norm(ZxA)^2 -lgdeta / N + norm(ZxB)^2 -lgdetb / N 
-                loss = lossA+lossB+ml
+
+            ## log (1-D(fakeimg)) + norm(Z)
+            fake_outputA = discriminatorA(fake_imagesAfromB)
+            fake_outputB = discriminatorB(fake_imagesBfromA)
+            der = (-1/(1-fake_outputA) - 1/(1-fake_outputB) + ZxA + ZxB)/batch_size
+            
+            generator.backward(Zx / batch_size, Zx, Zy;)
+
+            for p in get_params(generator) 
+              Flux.update!(optimizer_g,p.data,p.grad)
             end
-            Flux.Optimise.update!(optimizer_g, generator_params,g_grads)
+            clear_grad!(generator)
+
+            # g_grads = Flux.gradient(generator_params) do
+            #     fake_outputA = discriminatorA(fake_imagesAfromB)
+            #     fake_outputB = discriminatorB(fake_imagesBfromA)
+            #     lossA = Genloss(fake_outputA)
+            #     lossB = Genloss(fake_outputB)
+            #     ml = norm(ZxA)^2 -lgdeta / N + norm(ZxB)^2 -lgdetb / N 
+            #     loss = lossA+lossB+ml
+            # end
+            # Flux.Optimise.update!(optimizer_g, generator_params,g_grads)
 
 
             #loss calculation for printing
