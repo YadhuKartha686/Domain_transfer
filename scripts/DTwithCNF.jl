@@ -35,6 +35,8 @@ train_YB = ones(Float32,2048,512,1,752).*2
 test_YA = ones(Float32,2048,512,1,148)
 test_YB = ones(Float32,2048,512,1,148).*2
 
+
+
 indices_of_A = findall(x -> x == 0.0, train_y[:,1])
 indices_of_B = findall(x -> x == 1.0, train_y[:,1])
 
