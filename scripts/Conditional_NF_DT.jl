@@ -34,7 +34,7 @@ function posterior_sampler(G, y, size_x; device=gpu, num_samples=1, batch_size=1
    		X_post_train[:,:,:, (i-1)*batch_size+1 : i*batch_size] = G.inverse(
         	ZX_noise_i,
         	Zy_fixed_train
-    		) |> cpu;
+    		)[1] |> cpu;
 	end
 	X_post_train
 end
@@ -299,7 +299,7 @@ for e=1:n_epochs# epoch loop
 
         _, Zy_fixed_train, _ = G.forward(XAD |> device, YAD |> device); #needs to set the proper sizes here
         ZX_noise_i = randn(Float32, 2048,512,1,8)|> device
-        shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train) |> cpu;
+        shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
 
         # _, Zy_fixed_train, _ = G.forward(XA |> device, YA |> device); #needs to set the proper sizes here
         # ZX_noise_i = randn(Float32, 2048,512,1,2)|> device

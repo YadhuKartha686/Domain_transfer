@@ -66,7 +66,7 @@ n_batches = cld(n_train,batch_size)
 # Define the generator and discriminator networks
 
 n_epochs     = 100
-device = gpu
+device = cpu
 lr = 1f-4
 lr_step   = 10
 lr_rate = 0.75f0
@@ -191,29 +191,30 @@ model = Chain(
     Chain(
       AdaptiveMeanPool((1, 1)),
       MLUtils.flatten,
-      Dense(512 => 2, sigmoid),             # 513_000 parameters
+      Dense(512 => 1, sigmoid),             # 513_000 parameters
     ),
   )
 
 
 
 # Define the loss functions
-function Dissloss(A, Afake)
-    real_loss = -mean(log.(A))
-    fake_loss = -mean(log.(1.0 .- Afake))
-    return real_loss + fake_loss
+function Dissloss(real_output, fake_output)
+  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
+  fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
+  return (real_loss + fake_loss)
 end
 
-function Genloss(Afake)
-    fake_loss = -mean(log.(1.0 .- Afake))
-    return fake_loss
-end
+Genloss(fake_output) = mean(Flux.binarycrossentropy.(fake_output, 1f0))
 
 
 # Initialize networks and optimizers
-generator = G |> gpu
-discriminatorA = gpu(model)
-discriminatorB = gpu(model)
+# generator = G |> gpu
+# discriminatorA = gpu(model)
+# discriminatorB = gpu(model)
+
+generator = G
+discriminatorA = model
+discriminatorB = model
 
 generator_params = Flux.params(generator)
 discriminatorA_params = Flux.params(discriminatorA)
@@ -230,6 +231,7 @@ for e=1:n_epochs# epoch loop
     idx_eB = reshape(randperm(n_train), batch_size, n_batches)
     for b = 1:n_batches # batch loop
     	@time begin
+        
             XA = train_xA[:, :, :, idx_eA[:,b]];
             YA = train_YA[:, :, :, idx_eA[:,b]];
             XA .+= noise_lev_x*randn(Float32, size(XA));
@@ -239,25 +241,28 @@ for e=1:n_epochs# epoch loop
             YB = train_YB[:, :, :, idx_eB[:,b]];
             XB .+= noise_lev_x*randn(Float32, size(XB));
             YB = YB + noise_lev_y;  
-        
-        
-            # Compute discriminator loss
+      
+
+
             ZxB, ZyB, lgdetb = generator.forward(XB|> device, YB|> device)
             ZxA, ZyA, lgdeta = generator.forward(XA|> device, YA|> device)
 
 
-            fake_imagesAfromB = generator.inverse(ZxB,ZyA)
+            fake_imagesAfromB,invcallA = generator.inverse(ZxB,ZyA)
+            fake_imagesBfromA,invcallB = generator.inverse(ZxA,ZyB)
+          
+
             dA_grads = Flux.gradient(discriminatorA_params) do
                 real_outputA = discriminatorA(XA|> device)
-                fake_outputA = discriminatorA(fake_imagesAfromB)
+                fake_outputA = discriminatorA(fake_imagesAfromB|> device)
                 lossA = Dissloss(real_outputA, fake_outputA)
             end
             Flux.Optimise.update!(optimizer_da, discriminatorA_params,dA_grads)
 
-            fake_imagesBfromA = generator.inverse(ZxA,ZyB)
+            
             dB_grads = Flux.gradient(discriminatorB_params) do
                 real_outputB = discriminatorB(XB|> device)
-                fake_outputB = discriminatorB(fake_imagesBfromA)
+                fake_outputB = discriminatorB(fake_imagesBfromA|> device)
                 lossB = Dissloss(real_outputB, fake_outputB)
             end
             Flux.Optimise.update!(optimizer_db, discriminatorB_params,dB_grads)
@@ -265,32 +270,35 @@ for e=1:n_epochs# epoch loop
             # Compute generator loss
 
             ## log (1-D(fakeimg)) + norm(Z)
-            fake_outputA = discriminatorA(fake_imagesAfromB)
-            fake_outputB = discriminatorB(fake_imagesBfromA)
-            der = (-1/(1-fake_outputA) - 1/(1-fake_outputB) + ZxA + ZxB)/batch_size
             
-            generator.backward(Zx / batch_size, Zx, Zy;)
+            fake_outputA = discriminatorA(fake_imagesAfromB|> device)
+            fake_outputB = discriminatorB(fake_imagesBfromA|> device)
+            lossA = Genloss(fake_outputA)
+            lossB = Genloss(fake_outputB)
+            ml = norm(Array(ZxA))^2 + norm(Array(ZxB))^2
+            loss = lossA + lossB + ml
+          
+            grad_fake_imagesAfromB = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]
+            grad_fake_imagesBfromA = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]
 
-            for p in get_params(generator) 
-              Flux.update!(optimizer_g,p.data,p.grad)
+            generator.backward_inv(grad_fake_imagesAfromB, fake_imagesAfromB, invcallA;)
+            generator.backward_inv(grad_fake_imagesBfromA, fake_imagesBfromA, invcallB;)
+
+            for p in get_params(generator)
+              if !isnothing(p.grad)
+                Flux.update!(optimizer_g,p.data,p.grad)
+              end
             end
             clear_grad!(generator)
 
-            # g_grads = Flux.gradient(generator_params) do
-            #     fake_outputA = discriminatorA(fake_imagesAfromB)
-            #     fake_outputB = discriminatorB(fake_imagesBfromA)
-            #     lossA = Genloss(fake_outputA)
-            #     lossB = Genloss(fake_outputB)
-            #     ml = norm(ZxA)^2 -lgdeta / N + norm(ZxB)^2 -lgdetb / N 
-            #     loss = lossA+lossB+ml
-            # end
-            # Flux.Optimise.update!(optimizer_g, generator_params,g_grads)
-
-
             #loss calculation for printing
-
-
-
+            fake_outputA = discriminatorA(fake_imagesAfromB)
+                fake_outputB = discriminatorB(fake_imagesBfromA)
+                lossA = Genloss(fake_outputA)
+                lossB = Genloss(fake_outputB)
+                ml = norm(ZxA)^2 -lgdeta / N + norm(ZxB)^2 -lgdetb / N 
+                loss = lossA+lossB+ml
+                print(loss)
 
         end    
     end
