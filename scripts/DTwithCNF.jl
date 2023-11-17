@@ -269,7 +269,7 @@ for e=1:n_epochs# epoch loop
 
             # Compute generator loss
 
-            ## log (1-D(fakeimg)) + norm(Z)
+            ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
             
             fake_outputA = discriminatorA(fake_imagesAfromB|> device)
             fake_outputB = discriminatorB(fake_imagesBfromA|> device)
