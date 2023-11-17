@@ -66,7 +66,7 @@ n_batches = cld(n_train,batch_size)
 # Define the generator and discriminator networks
 
 n_epochs     = 100
-device = cpu
+device = gpu
 lr = 1f-4
 lr_step   = 10
 lr_rate = 0.75f0
@@ -208,13 +208,13 @@ Genloss(fake_output) = mean(Flux.binarycrossentropy.(fake_output, 1f0))
 
 
 # Initialize networks and optimizers
-# generator = G |> gpu
-# discriminatorA = gpu(model)
-# discriminatorB = gpu(model)
+generator = G |> gpu
+discriminatorA = gpu(model)
+discriminatorB = gpu(model)
 
-generator = G
-discriminatorA = model
-discriminatorB = model
+# generator = G
+# discriminatorA = model
+# discriminatorB = model
 
 generator_params = Flux.params(generator)
 discriminatorA_params = Flux.params(discriminatorA)
@@ -224,9 +224,12 @@ opt_adam = "adam"
 optimizer_g = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
-
+genloss=[]
+dissloss = []
 # Main training loop
 for e=1:n_epochs# epoch loop
+    epoch_loss_diss=0.0
+    epoch_loss_gen=0.0
     idx_eA = reshape(randperm(n_train), batch_size, n_batches)
     idx_eB = reshape(randperm(n_train), batch_size, n_batches)
     for b = 1:n_batches # batch loop
@@ -267,17 +270,8 @@ for e=1:n_epochs# epoch loop
             end
             Flux.Optimise.update!(optimizer_db, discriminatorB_params,dB_grads)
 
-            # Compute generator loss
-
             ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
-            
-            fake_outputA = discriminatorA(fake_imagesAfromB|> device)
-            fake_outputB = discriminatorB(fake_imagesBfromA|> device)
-            lossA = Genloss(fake_outputA)
-            lossB = Genloss(fake_outputB)
-            ml = norm(Array(ZxA))^2 + norm(Array(ZxB))^2
-            loss = lossA + lossB + ml
-          
+                      
             grad_fake_imagesAfromB = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]
             grad_fake_imagesBfromA = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]
 
@@ -292,23 +286,72 @@ for e=1:n_epochs# epoch loop
             clear_grad!(generator)
 
             #loss calculation for printing
-            fake_outputA = discriminatorA(fake_imagesAfromB)
-                fake_outputB = discriminatorB(fake_imagesBfromA)
-                lossA = Genloss(fake_outputA)
-                lossB = Genloss(fake_outputB)
-                ml = norm(ZxA)^2 -lgdeta / N + norm(ZxB)^2 -lgdetb / N 
-                loss = lossA+lossB+ml
-                print(loss)
+            fake_outputA = discriminatorA(fake_imagesAfromB|> device)
+            fake_outputB = discriminatorB(fake_imagesBfromA|> device)
+            real_outputA = discriminatorA(XA|> device)
+            real_outputB = discriminatorB(XB|> device)
+
+            lossAd = Dissloss(real_outputA, fake_outputA)
+            lossBd = Dissloss(real_outputB, fake_outputB)
+            lossA = Genloss(fake_outputA)
+            lossB = Genloss(fake_outputB)
+            ml = (norm(ZxA)^2 + norm(ZxB)^2)/(N*batch_size)
+            loss = lossA + lossB + ml
+
+            epoch_loss_diss += (lossAd+lossBd)/2
+            epoch_loss_gen += loss
+
+            println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
+	            "; genloss = ",  loss, 
+                "; dissloss = ", (lossAd+lossBd)/2 , "\n")
+
+            Base.flush(Base.stdout)
 
         end    
     end
+    avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
+    avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
+    push!(genloss, avg_epoch_lossg)
+    push!(dissloss, avg_epoch_lossd)
+    plt.plot(1:e,genloss[1:e])
+    plt.title("genloss $b")
+    plt.savefig("../plots/Shot_rec/genloss$e.png")
+    plt.close()
+    plt.plot(1:e,dissloss[1:e])
+    plt.title("dissloss $b")
+    plt.savefig("../plots/Shot_rec/dissloss$e.png")
+    plt.close()
     
-    if epoch % 100 == 0
-        println("Epoch: $epoch, Generator Loss: $g_loss, Discriminator Loss: $d_loss")
+    if n_epochs % 1 == 0
         
         # Optionally, generate and save a sample image during training
-        sample_noise = randn(latent_dim, 1)
-        generated_image = generator(sample_noise)
+        ZxB, ZyB, lgdetb = generator.forward(train_xA[:,:,:,1:8]|> device, train_YA[:,:,:,1:8]|> device)
+        ZxA, ZyA, lgdeta = generator.forward(train_xB[:,:,:,1:8]|> device, train_YB[:,:,:,1:8]|> device)
+
+
+        fake_imagesAfromB,_ = generator.inverse(ZxB,ZyA)
+        fake_imagesBfromA,_ = generator.inverse(ZxA,ZyB)
+
+        plot_sdata(XB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plt.title("Shot record (vel+den) $e")
+        plt.savefig("../plots/Shot_rec/vel+dentrain$e.png")
+        plt.close()
+
+        plot_sdata(XA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plt.title("Shot record pred vel) $e")
+        plt.savefig("../plots/Shot_rec/veltrain$e.png")
+        plt.close()
+        # Save or visualize the generated_image as needed
+
+        plot_sdata(fake_imagesAfromB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plt.title("Shot record pred ( vel from vel+den) $e")
+        plt.savefig("../plots/Shot_rec/vel+den$e.png")
+        plt.close()
+
+        plot_sdata(fake_imagesBfromA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plt.title("Shot record pred ( vel+den from vel) $e")
+        plt.savefig("../plots/Shot_rec/vel$e.png")
+        plt.close()
         # Save or visualize the generated_image as needed
     end
 end
