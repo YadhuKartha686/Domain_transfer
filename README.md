@@ -32,7 +32,7 @@ which auto-activate the project and enable local path handling from DrWatson.
 
 ```
 scp -r ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/Domain_transfer/plots Domain_transfer/plots 
-module load Julia
+module load Julia/1.8/5
 salloc -A ykartha6 -t 20:00:00 --cpus-per-task=16 --mem-per-cpu=16G --gres=gpu:1 --ntasks=1 srun --pty julia
 squeue to check if im safe
 scanel with job id if didnt use srun --pty julia
