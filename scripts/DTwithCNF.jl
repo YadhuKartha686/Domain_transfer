@@ -314,11 +314,11 @@ for e=1:n_epochs# epoch loop
     push!(genloss, avg_epoch_lossg)
     push!(dissloss, avg_epoch_lossd)
     plt.plot(1:e,genloss[1:e])
-    plt.title("genloss $b")
+    plt.title("genloss $e")
     plt.savefig("../plots/Shot_rec/genloss$e.png")
     plt.close()
     plt.plot(1:e,dissloss[1:e])
-    plt.title("dissloss $b")
+    plt.title("dissloss $e")
     plt.savefig("../plots/Shot_rec/dissloss$e.png")
     plt.close()
     
