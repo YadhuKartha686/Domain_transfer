@@ -332,23 +332,23 @@ for e=1:n_epochs# epoch loop
         fake_imagesAfromB,_ = generator.inverse(ZxB,ZyA)
         fake_imagesBfromA,_ = generator.inverse(ZxA,ZyB)
 
-        plot_sdata(train_xB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(train_xB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record (vel+den) $e")
         plt.savefig("../plots/Shot_rec/vel+dentrain$e.png")
         plt.close()
 
-        plot_sdata(train_xA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(train_xA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred vel) $e")
         plt.savefig("../plots/Shot_rec/veltrain$e.png")
         plt.close()
         # Save or visualize the generated_image as needed
 
-        plot_sdata(fake_imagesAfromB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(fake_imagesAfromB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel from vel+den) $e")
         plt.savefig("../plots/Shot_rec/vel+den$e.png")
         plt.close()
 
-        plot_sdata(fake_imagesBfromA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(fake_imagesBfromA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel+den from vel) $e")
         plt.savefig("../plots/Shot_rec/vel$e.png")
         plt.close()
