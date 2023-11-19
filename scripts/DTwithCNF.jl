@@ -227,12 +227,12 @@ optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), Cl
 genloss=[]
 dissloss = []
 # Main training loop
-for e=1:n_epochs# epoch loop
+for e=1:1# epoch loop
     epoch_loss_diss=0.0
     epoch_loss_gen=0.0
     idx_eA = reshape(randperm(n_train), batch_size, n_batches)
     idx_eB = reshape(randperm(n_train), batch_size, n_batches)
-    for b = 1:n_batches # batch loop
+    for b = 1:1 # batch loop
     	@time begin
         
             XA = train_xA[:, :, :, idx_eA[:,b]];
