@@ -332,12 +332,12 @@ for e=1:n_epochs# epoch loop
         fake_imagesAfromB,_ = generator.inverse(ZxB,ZyA)
         fake_imagesBfromA,_ = generator.inverse(ZxA,ZyB)
 
-        plot_sdata(XB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(train_xB[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record (vel+den) $e")
         plt.savefig("../plots/Shot_rec/vel+dentrain$e.png")
         plt.close()
 
-        plot_sdata(XA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(train_xA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred vel) $e")
         plt.savefig("../plots/Shot_rec/veltrain$e.png")
         plt.close()
