@@ -238,15 +238,15 @@ for e=1:n_epochs# epoch loop
     for b = 1:n_batches # batch loop
     	@time begin
         
-            XA = train_xA[:, :, :, idx_eA[:,b]];
-            YA = train_YA[:, :, :, idx_eA[:,b]];
-            XA .+= noise_lev_x*randn(Float32, size(XA));
-            YA = YA + noise_lev_y;
+            XA = train_xA[:, :, :, idx_eA[:,b]]
+            YA = train_YA[:, :, :, idx_eA[:,b]]
+            XA .+= noise_lev_x*randn(Float32, size(XA))
+            YA = YA + noise_lev_y
 
-            XB = train_xB[:, :, :, idx_eB[:,b]];
-            YB = train_YB[:, :, :, idx_eB[:,b]];
-            XB .+= noise_lev_x*randn(Float32, size(XB));
-            YB = YB + noise_lev_y;  
+            XB = train_xB[:, :, :, idx_eB[:,b]]
+            YB = train_YB[:, :, :, idx_eB[:,b]]
+            XB .+= noise_lev_x*randn(Float32, size(XB))
+            YB = YB + noise_lev_y
       
 
 
@@ -315,6 +315,15 @@ for e=1:n_epochs# epoch loop
                 "; lgdet = ", logdet_train[end], "\n")
 
             Base.flush(Base.stdout)
+
+            plt.plot(lossnrm)
+            plt.title("loss $b")
+            plt.savefig("../plots/Shot_rec/lossnorm$e.png")
+            plt.close()
+            plt.plot(logdet_train)
+            plt.title("logdet $b")
+            plt.savefig("../plots/Shot_rec/logdet$e.png")
+            plt.close()
 
         end    
     end

@@ -160,7 +160,6 @@ num_post_samples=32
 lat_vmax = 8
 lat_vmin = -8
 
-
 #Training
 function sigmoid_schedule(t , T , tau =0.6 , start =0 , end_t =3 , clip_min =1f-9) 
     # A scheduling function based on sigmoid function with a temperature tau .
@@ -186,6 +185,7 @@ for e=1:n_epochs# epoch loop
       
 	        # Forward pass of normalizing flow
 	        Zx, Zy, lgdet = G.forward(X|> device, Y|> device)
+            fakeimgs,invcall = G.inverse(Zx,Zy)
 
 	        # Loss function is l2 norm 
 	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
@@ -193,12 +193,21 @@ for e=1:n_epochs# epoch loop
 
 	        # Set gradients of flow and summary network
 	        #G.backward(Zx / batch_size, Zx, Zy; C_save = Y |> device)
-            G.backward(Zx / batch_size, Zx, Zy;)
+            # G.backward(Zx / batch_size, Zx, Zy;)
 
-	        for p in get_params(G) 
-	          Flux.update!(opt,p.data,p.grad)
-	        end
-	        clear_grad!(G)
+	        # for p in get_params(G) 
+	        #   Flux.update!(opt,p.data,p.grad)
+	        # end
+	        # clear_grad!(G)
+            grad_fake_images = gradient(x -> Flux.mse(X,x), fakeimgs)[1]
+            G.backward_inv(grad_fake_images, fakeimgs, invcall;)
+
+            for p in get_params(G)
+              if !isnothing(p.grad)
+                Flux.update!(optimizer_g,p.data,p.grad)
+              end
+            end
+            clear_grad!(G)
 
 	        println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
 	            "; f l2 = ",  loss[end], 
