@@ -199,12 +199,12 @@ for e=1:n_epochs# epoch loop
 	        #   Flux.update!(opt,p.data,p.grad)
 	        # end
 	        # clear_grad!(G)
-            grad_fake_images = gradient(x -> Flux.mse(X,x), fakeimgs)[1]
+            grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
             G.backward_inv(grad_fake_images, fakeimgs, invcall;)
 
             for p in get_params(G)
               if !isnothing(p.grad)
-                Flux.update!(optimizer_g,p.data,p.grad)
+                Flux.update!(opt,p.data,p.grad)
               end
             end
             clear_grad!(G)
