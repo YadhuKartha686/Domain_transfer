@@ -54,7 +54,7 @@ for i=1:752
 end
 
 
-batch_size = 8
+batch_size = 4
 nx,ny = 2048, 512
 N = nx*ny;
 
@@ -233,33 +233,53 @@ for e=1:n_epochs# epoch loop
     idx_eB = reshape(randperm(n_train), batch_size, n_batches)
     for b = 1:n_batches # batch loop
     	@time begin
-        
-            XA = train_xA[:, :, :, idx_eA[:,b]]
-            YA = train_YA[:, :, :, idx_eA[:,b]]
-            XA .+= noise_lev_x*randn(Float32, size(XA))
-            YA = YA + noise_lev_y
 
-            XB = train_xB[:, :, :, idx_eB[:,b]]
-            YB = train_YB[:, :, :, idx_eB[:,b]]
-            XB .+= noise_lev_x*randn(Float32, size(XB))
-            YB = YB + noise_lev_y
+            ############# Loading domain A data ###############
+
+            XA = train_xA[:, :, :, idx_eA[:,b]];
+            YA = train_YA[:, :, :, idx_eA[:,b]];
+            XA .+= noise_lev_x*randn(Float32, size(XA));
+            YA = YA + noise_lev_y;
+
+            ############# Loading domain B data ###############
+
+            XB = train_xB[:, :, :, idx_eB[:,b]];
+            YB = train_YB[:, :, :, idx_eB[:,b]];
+            XB .+= noise_lev_x*randn(Float32, size(XB));
+            YB = YB + noise_lev_y;
       
 
+            X = cat(XA, XB,dims=4)
+            Y = cat(YA, YB,dims=4)
+            Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
-            ZxB, ZyB, lgdetb = generator.forward(XB|> device, YB|> device)
-            ZxA, ZyA, lgdeta = generator.forward(XA|> device, YA|> device)
+            ######## interchanging conditions to get domain transferred images during inverse call #########
 
+            ZyA = Zy[:,:,:,1:4]
+            ZyB = Zy[:,:,:,5:end]
+            ZxA = Zx[:,:,:,1:4]
+            ZxB = Zx[:,:,:,5:end]
 
-            fake_imagesAfromB,invcallA = generator.inverse(ZxB,ZyA)
-            fake_imagesBfromA,invcallB = generator.inverse(ZxA,ZyB)
-          
+            Zy = cat(ZyB,ZyA,dims=4)
+
+            fake_images,invcall = generator.inverse(Zx,Zy)  ###### generating images #######
+
+            ####### getting fake images from respective domain ########
+
+            fake_imagesAfromB = fake_images[:,:,:,5:end]
+            fake_imagesAfromB = fake_images[:,:,:,1:4]
+
+            invcallA = invcall[:,:,:,5:end]
+            invcallB = invcall[:,:,:,1:4]
+
+            ####### discrim training ########
 
             dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
                 real_outputA = discriminatorA(XA|> device)
                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
                 lossA = Dissloss(real_outputA, fake_outputA)
             end
-            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)
+            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
 
             
             dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
@@ -267,22 +287,22 @@ for e=1:n_epochs# epoch loop
                 fake_outputB = discriminatorB(fake_imagesBfromA|> device)
                 lossB = Dissloss(real_outputB, fake_outputB)
             end
-            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)
+            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
 
             ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                       
-            grad_fake_imagesAfromB = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]
-            grad_fake_imagesBfromA = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]
+            grad_fake_imagesAfromB = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+            grad_fake_imagesBfromA = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
-            generator.backward_inv(grad_fake_imagesAfromB, fake_imagesAfromB, invcallA;)
-            generator.backward_inv(grad_fake_imagesBfromA, fake_imagesBfromA, invcallB;)
+            generator.backward_inv(grad_fake_imagesAfromB, fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
+            generator.backward_inv(grad_fake_imagesBfromA, fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
 
             for p in get_params(generator)
               if !isnothing(p.grad)
                 Flux.update!(optimizer_g,p.data,p.grad)
               end
             end
-            clear_grad!(generator)
+            clear_grad!(generator) #### updating generator ####
 
             #loss calculation for printing
             fake_outputA = discriminatorA(fake_imagesAfromB|> device)
@@ -290,10 +310,10 @@ for e=1:n_epochs# epoch loop
             real_outputA = discriminatorA(XA|> device)
             real_outputB = discriminatorB(XB|> device)
 
-            lossAd = Dissloss(real_outputA, fake_outputA)
-            lossBd = Dissloss(real_outputB, fake_outputB)
-            lossA = Genloss(fake_outputA)
-            lossB = Genloss(fake_outputB)
+            lossAd = Dissloss(real_outputA, fake_outputA)  #### log(D(real)) + log(1 - D(fake)) ####
+            lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
+            lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
+            lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
             ml = (norm(ZxA)^2 + norm(ZxB)^2)/(N*batch_size)
             loss = lossA + lossB + ml
 
