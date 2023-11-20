@@ -226,6 +226,9 @@ optimizer_da = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), Cl
 optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 genloss=[]
 dissloss = []
+
+lossnrm=[]
+logdet_train=[]
 # Main training loop
 for e=1:n_epochs# epoch loop
     epoch_loss_diss=0.0
@@ -298,12 +301,18 @@ for e=1:n_epochs# epoch loop
             ml = (norm(ZxA)^2 + norm(ZxB)^2)/(N*batch_size)
             loss = lossA + lossB + ml
 
+            append!(lossnrm, (norm(ZxA)^2 + norm(ZxB)^2)/ (N*batch_size))  # normalize by image size and batch size
+	          append!(logdet_train, (-lgdeta-lgdetb) / 2*N) # logdet is internally normalized by batch size
+
+
             epoch_loss_diss += (lossAd+lossBd)/2
             epoch_loss_gen += loss
 
             println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
 	            "; genloss = ",  loss, 
-                "; dissloss = ", (lossAd+lossBd)/2 , "\n")
+                "; dissloss = ", (lossAd+lossBd)/2 , 
+                "; f l2 = ",  lossnrm[end], 
+                "; lgdet = ", logdet_train[end], "\n")
 
             Base.flush(Base.stdout)
 
