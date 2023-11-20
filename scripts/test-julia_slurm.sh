@@ -10,4 +10,4 @@
 
 module load Julia/1.8/5
 
-srun julia DTwithCNF.jl
+srun julia Condtional_NF_DT.jl
