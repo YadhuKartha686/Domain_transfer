@@ -216,10 +216,6 @@ discriminatorB = gpu(model)
 # discriminatorA = model
 # discriminatorB = model
 
-generator_params = Flux.params(generator)
-discriminatorA_params = Flux.params(discriminatorA)
-discriminatorB_params = Flux.params(discriminatorA)
-
 opt_adam = "adam"
 optimizer_g = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
@@ -258,20 +254,20 @@ for e=1:n_epochs# epoch loop
             fake_imagesBfromA,invcallB = generator.inverse(ZxA,ZyB)
           
 
-            dA_grads = Flux.gradient(discriminatorA_params) do
+            dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
                 real_outputA = discriminatorA(XA|> device)
                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
                 lossA = Dissloss(real_outputA, fake_outputA)
             end
-            Flux.Optimise.update!(optimizer_da, discriminatorA_params,dA_grads)
+            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)
 
             
-            dB_grads = Flux.gradient(discriminatorB_params) do
+            dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
                 real_outputB = discriminatorB(XB|> device)
                 fake_outputB = discriminatorB(fake_imagesBfromA|> device)
                 lossB = Dissloss(real_outputB, fake_outputB)
             end
-            Flux.Optimise.update!(optimizer_db, discriminatorB_params,dB_grads)
+            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)
 
             ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                       
