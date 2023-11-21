@@ -92,8 +92,6 @@ for i=1:300
 end
 
 
-# train_x1 = normalize_images(train_x1)
-# test_x1 = normalize_images(test_x1)
 # Choose params
 batch_size = 8
 nx,ny = 2048, 512
@@ -151,12 +149,6 @@ l2_cm_val  = [];
 vmax_val = 200
 vmin_val = -125
 num_post_samples=32
-# X_val_latent = X_val[:,:,:,1:8]
-# Y_val_latent = Y_val[:,:,:,1:8]
-
-# X_train_latent = X_train[:,:,:,1:8]
-# Y_train_latent = Y_train[:,:,:,1:8]
-
 lat_vmax = 8
 lat_vmin = -8
 
@@ -191,21 +183,11 @@ for e=1:n_epochs# epoch loop
 	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
-	        # Set gradients of flow and summary network
-	        #G.backward(Zx / batch_size, Zx, Zy; C_save = Y |> device)
-            # G.backward(Zx / batch_size, Zx, Zy;)
-
-	        # for p in get_params(G) 
-	        #   Flux.update!(opt,p.data,p.grad)
-	        # end
-	        # clear_grad!(G)
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
             G.backward_inv(grad_fake_images, fakeimgs, invcall;)
 
             for p in get_params(G)
-                # print(size(p.grad))
-                # print(size(p.data))
-                # print("\n")
+
                 Flux.update!(opt,p.data,p.grad)
             end
             clear_grad!(G)
@@ -226,21 +208,6 @@ for e=1:n_epochs# epoch loop
             plt.close()
     	end
     end
-
-    # get objective mean metrics over testing batch  
-    # @time l2_val, lgdet_val  = get_loss(G, X_val, Y_val; device=device, batch_size=batch_size)
-    # append!(logdet_val, -lgdet_val)
-    # append!(loss_val, l2_val)
-
-    # # get conditional mean metrics over training batch (takes a bit since you have to do posterior sample but worth it in order to catch overfitting)
-    # @time cm_l2_train, cm_ssim_train = get_cm_l2_ssim(G, X_train[:,:,:,1:n_condmean], Y_train[:,:,:,1:n_condmean]; device=device, num_samples=posterior_samples )
-    # append!(ssim, cm_ssim_train)
-    # append!(l2_cm, cm_l2_train)
-
-    # # get conditional mean metrics over testing batch (takes a bit since you have to do posterior sample but worth it in order to catch overfitting)
-    # @time cm_l2_val, cm_ssim_val  = get_cm_l2_ssim(G, X_val[:,:,:,1:n_condmean], Y_val[:,:,:,1:n_condmean]; device=device, num_samples=posterior_samples )
-    # append!(ssim_val, cm_ssim_val)
-    # append!(l2_cm_val, cm_l2_val)
 
     if(mod(e,plot_every)==0) 
         for (test_x, test_y, file_str) in [[train_x1,train_Y, "train"], [test_x1, test_Y, "test"]]
