@@ -784,9 +784,9 @@ version = "1.3.0"
 
 [[deps.InvertibleNetworks]]
 deps = ["CUDA", "ChainRulesCore", "Flux", "JOLI", "LinearAlgebra", "NNlib", "Random", "Statistics", "Wavelets"]
-git-tree-sha1 = "49299de9d17a2d3776fdabbf8d0ad9a7062ccfe2"
+git-tree-sha1 = "c5a2b11742777b2a3fa7664e45bda4afc5378bcf"
 repo-rev = "cond-glow-fix"
-repo-url = "https://github.com/slimgroup/InvertibleNetworks.jl.git"
+repo-url = "https://github.com/YadhuKartha686/InvertibleNetworks.jl.git"
 uuid = "b7115f24-5f92-4794-81e8-23b0ddb121d3"
 version = "2.2.1"
 

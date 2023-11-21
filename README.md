@@ -37,7 +37,7 @@ salloc -A ykartha6 -t 20:00:00 --cpus-per-task=16 --mem-per-cpu=16G --gres=gpu:1
 squeue to check if im safe
 scanel with job id if didnt use srun --pty julia
 
-
+scp ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/Domain_transfer/scripts/output.txt Domain_transfer/scripts
 for sbatch
 
 use test-julia_slurm.sh file and set parametes

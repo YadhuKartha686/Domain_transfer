@@ -203,9 +203,10 @@ for e=1:n_epochs# epoch loop
             G.backward_inv(grad_fake_images, fakeimgs, invcall;)
 
             for p in get_params(G)
-              if !isnothing(p.grad)
+                # print(size(p.grad))
+                # print(size(p.data))
+                # print("\n")
                 Flux.update!(opt,p.data,p.grad)
-              end
             end
             clear_grad!(G)
 
