@@ -138,6 +138,7 @@ opt = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(cl
 # Training logs 
 loss   = [];
 logdet_train = [];
+mseval = [];
 ssim   = [];
 l2_cm  = [];
 
@@ -184,23 +185,29 @@ for e=1:n_epochs# epoch loop
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
-            G.backward_inv(grad_fake_images, fakeimgs, invcall;)
+            G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
+
+            mseloss = Flux.mse(X|> device,fakeimgs)
+            append!(mseval, mseloss)
 
             for p in get_params(G)
-
                 Flux.update!(opt,p.data,p.grad)
             end
             clear_grad!(G)
 
 	        println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
 	            "; f l2 = ",  loss[end], 
-                "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
+                "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "; mse = ", mseloss, "\n")
             
 
 	        Base.flush(Base.stdout)
             plt.plot(loss)
             plt.title("loss $b")
             plt.savefig("../plots/Shot_rec/loss$e.png")
+            plt.close()
+            plt.plot(mseval)
+            plt.title("mseloss $b")
+            plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
             plt.plot(logdet_train)
             plt.title("logdet $b")
