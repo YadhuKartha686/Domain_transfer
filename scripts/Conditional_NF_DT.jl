@@ -153,6 +153,8 @@ num_post_samples=32
 lat_vmax = 8
 lat_vmin = -8
 
+Ztest = randn(Float32, nx,ny,1,batch_size); 
+
 #Training
 function sigmoid_schedule(t , T , tau =0.6 , start =0 , end_t =3 , clip_min =1f-9) 
     # A scheduling function based on sigmoid function with a temperature tau .
@@ -178,13 +180,16 @@ for e=1:n_epochs# epoch loop
       
 	        # Forward pass of normalizing flow
 	        Zx, Zy, lgdet = G.forward(X|> device, Y|> device)
-            fakeimgs,invcall = G.inverse(Zx,Zy)
+
+            
+
+            fakeimgs,invcall = G.inverse(Ztest,Zy)
 
 	        # Loss function is l2 norm 
 	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
-            grad_fake_images = gradient(x -> -Flux.mse(X|> device,x), fakeimgs)[1]
+            grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
             G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
 
             mseloss = Flux.mse(X|> device,fakeimgs)
