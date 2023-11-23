@@ -184,7 +184,7 @@ for e=1:n_epochs# epoch loop
 	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
-            grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
+            grad_fake_images = gradient(x -> -Flux.mse(X|> device,x), fakeimgs)[1]
             G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
 
             mseloss = Flux.mse(X|> device,fakeimgs)
