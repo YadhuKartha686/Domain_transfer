@@ -183,7 +183,7 @@ for e=1:n_epochs# epoch loop
 
             
 
-            fakeimgs,invcall = G.inverse(Ztest,Zy)
+            fakeimgs,invcall = G.inverse(Ztest|> device,Zy)
 
 	        # Loss function is l2 norm 
 	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
