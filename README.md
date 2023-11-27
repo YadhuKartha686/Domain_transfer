@@ -44,3 +44,5 @@ use test-julia_slurm.sh file and set parametes
 sbatch test-julia_slurm.sh
 
 ```
+
+scp -r Domain_transfer/ ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/

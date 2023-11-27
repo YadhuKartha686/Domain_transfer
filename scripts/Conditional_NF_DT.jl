@@ -157,13 +157,13 @@ Ztest = randn(Float32, nx,ny,1,batch_size);
 Zytest = randn(Float32, 64,16,1024,batch_size); 
 
 #Training
-function sigmoid_schedule(t , T , tau =0.6 , start =0 , end_t =3 , clip_min =1f-9) 
-    # A scheduling function based on sigmoid function with a temperature tau .
-        v_start = sigmoid( start / tau )
-        v_end = sigmoid( end_t / tau )
-        return ( v_end - sigmoid(( t /T * ( end_t - start ) + start ) / tau )) / ( v_end - v_start )
-    end
-    tau = 0.6
+# function sigmoid_schedule(t , T , tau =0.6 , start =0 , end_t =3 , clip_min =1f-9) 
+#     # A scheduling function based on sigmoid function with a temperature tau .
+#         v_start = sigmoid( start / tau )
+#         v_end = sigmoid( end_t / tau )
+#         return ( v_end - sigmoid(( t /T * ( end_t - start ) + start ) / tau )) / ( v_end - v_start )
+#     end
+#     tau = 0.6
 
 for e=1:n_epochs# epoch loop
     # sigma_noise = sigmoid_schedule(e,n_epochs,tau)
