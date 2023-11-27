@@ -1,5 +1,4 @@
 #!/bin/bash
-#
 #SBATCH --job-name=CNF_test
 #SBATCH --output=output.txt
 #SBATCH --cpus-per-task=16
