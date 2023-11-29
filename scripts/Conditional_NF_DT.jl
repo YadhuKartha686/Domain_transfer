@@ -182,18 +182,18 @@ for e=1:n_epochs# epoch loop
             end
             clear_grad!(G)
 
-	        println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
+	        println("Iter: epoch=", e, "/", n_epochs, 
 	             
                 "; lgdet = ", logdet_train[end], "; mse = ", mseloss, "\n")
             
 
 	        Base.flush(Base.stdout)
             plt.plot(mseval)
-            plt.title("mseloss $b")
+            plt.title("mseloss $e")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
             plt.plot(logdet_train)
-            plt.title("logdet $b")
+            plt.title("logdet $e")
             plt.savefig("../plots/Shot_rec/logdet$e.png")
             plt.close()
     	end
