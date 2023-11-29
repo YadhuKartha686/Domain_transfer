@@ -199,11 +199,6 @@ for e=1:n_epochs# epoch loop
     	end
 
     if(mod(e,plot_every)==0) 
-    
-        tight_layout()
-        fig_name = @strdict e lr n_hidden L K batch_size
-        safesave(joinpath(plot_path, savename(fig_name; digits=6)*"_"*file_str*".png"), fig); close(fig)
-
 
         shot_rec = zeros(Float32,2048,512,1,8)
         shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)
