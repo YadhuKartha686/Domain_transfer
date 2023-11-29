@@ -223,9 +223,6 @@ for e=1:n_epochs# epoch loop
     end
 
 
-	end
-
-
 end
 
 
