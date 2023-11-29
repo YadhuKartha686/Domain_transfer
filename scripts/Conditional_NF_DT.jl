@@ -287,7 +287,8 @@ for e=1:n_epochs# epoch loop
 
         _, Zy_fixed_train, _ = G.forward(XAD |> device, YAD |> device); #needs to set the proper sizes here
         ZX_noise_i = randn(Float32, 2048,512,1,8)|> device
-        shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
+        # shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
+        shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)
 
         # _, Zy_fixed_train, _ = G.forward(XA |> device, YA |> device); #needs to set the proper sizes here
         # ZX_noise_i = randn(Float32, 2048,512,1,2)|> device
