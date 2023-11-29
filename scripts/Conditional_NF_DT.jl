@@ -183,8 +183,8 @@ for e=1:n_epochs# epoch loop
             clear_grad!(G)
 
 	        println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
-	            "; f l2 = ",  loss[end], 
-                "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "; mse = ", mseloss, "\n")
+	             
+                "; lgdet = ", logdet_train[end], "; mse = ", mseloss, "\n")
             
 
 	        Base.flush(Base.stdout)
