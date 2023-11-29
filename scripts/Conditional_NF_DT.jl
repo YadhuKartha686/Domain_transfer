@@ -155,37 +155,31 @@ lat_vmin = -8
 
 Ztest = randn(Float32, nx,ny,1,batch_size); 
 Zytest = randn(Float32, 64,16,1024,batch_size); 
+X = train_x1[:, :, :, 1:batch_size];
+Y = train_Y[:, :, :, 1:batch_size];
 
-#Training
-# function sigmoid_schedule(t , T , tau =0.6 , start =0 , end_t =3 , clip_min =1f-9) 
-#     # A scheduling function based on sigmoid function with a temperature tau .
-#         v_start = sigmoid( start / tau )
-#         v_end = sigmoid( end_t / tau )
-#         return ( v_end - sigmoid(( t /T * ( end_t - start ) + start ) / tau )) / ( v_end - v_start )
-#     end
-#     tau = 0.6
 
 for e=1:n_epochs# epoch loop
     # sigma_noise = sigmoid_schedule(e,n_epochs,tau)
     # alpha_noise = sqrt(1-sigma_noise^2)
-    idx_e = reshape(randperm(n_train), batch_size, n_batches)
-    for b = 1:n_batches # batch loop
+    # idx_e = reshape(randperm(n_train), batch_size, n_batches)
+    # for b = 1:n_batches # batch loop
 
     	@time begin
-	        X = train_x1[:, :, :, idx_e[:,b]];
-	        Y = train_Y[:, :, :, idx_e[:,b]];
-	        X .+= noise_lev_x*randn(Float32, size(X));
+	        # X = train_x1[:, :, :, idx_e[:,b]];
+	        # Y = train_Y[:, :, :, idx_e[:,b]];
+	        # X .+= noise_lev_x*randn(Float32, size(X));
             # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
 
 			Y = Y + noise_lev_y;
       
 	        # Forward pass of normalizing flow
-	        Zx, Zy, lgdet = G.forward(X|> device, Y|> device)
+	        _, _, lgdet = G.forward(X|> device, Y|> device)
 
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
 	        # Loss function is l2 norm 
-	        append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
+	        # append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
@@ -205,10 +199,10 @@ for e=1:n_epochs# epoch loop
             
 
 	        Base.flush(Base.stdout)
-            plt.plot(loss)
-            plt.title("loss $b")
-            plt.savefig("../plots/Shot_rec/loss$e.png")
-            plt.close()
+            # plt.plot(loss)
+            # plt.title("loss $b")
+            # plt.savefig("../plots/Shot_rec/loss$e.png")
+            # plt.close()
             plt.plot(mseval)
             plt.title("mseloss $b")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
@@ -218,58 +212,58 @@ for e=1:n_epochs# epoch loop
             plt.savefig("../plots/Shot_rec/logdet$e.png")
             plt.close()
     	end
-    end
+    # end
 
     if(mod(e,plot_every)==0) 
-        for (test_x, test_y, file_str) in [[train_x1,train_Y, "train"], [test_x1, test_Y, "test"]]
-            num_cols = 8
-            plots_len = 2
-            all_sampls = size(test_x)[end]
-            fig = figure(figsize=(25, 5)); 
-            for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
-                x = test_x[:,:,:,ind:ind] 
-                y = test_y[:,:,:,ind:ind]
-                y .+= randn(Float32).*randn(Float32, size(y))./1000;
+        # for (test_x, test_y, file_str) in [[train_x1,train_Y, "train"], [test_x1, test_Y, "test"]]
+        #     num_cols = 8
+        #     plots_len = 2
+        #     all_sampls = size(test_x)[end]
+        #     fig = figure(figsize=(25, 5)); 
+        #     for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
+        #         x = test_x[:,:,:,ind:ind] 
+        #         y = test_y[:,:,:,ind:ind]
+        #         y .+= randn(Float32).*randn(Float32, size(y))./1000;
         
-                # make samples from posterior for train sample 
-                X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
-                X_post_mean = mean(X_post,dims=4)
-                X_post_std  = std(X_post, dims=4)
+        #         # make samples from posterior for train sample 
+        #         X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
+        #         X_post_mean = mean(X_post,dims=4)
+        #         X_post_std  = std(X_post, dims=4)
         
-                x_hat = X_post_mean[:,:,1,1]
-                x_gt =  x[:,:,1,1]
-                error_mean = abs.(x_hat-x_gt)
+        #         x_hat = X_post_mean[:,:,1,1]
+        #         x_gt =  x[:,:,1,1]
+        #         error_mean = abs.(x_hat-x_gt)
         
-                ssim_i = round(assess_ssim(x_hat, x_gt),digits=2)
-                rmse_i = round(sqrt(mean(error_mean.^2)),digits=4)
+        #         ssim_i = round(assess_ssim(x_hat, x_gt),digits=2)
+        #         rmse_i = round(sqrt(mean(error_mean.^2)),digits=4)
         
-                y_plot = y[:,:,1,1]'
-                a = maximum(x_gt)
-                b = minimum(x_gt)
+        #         y_plot = y[:,:,1,1]'
+        #         a = maximum(x_gt)
+        #         b = minimum(x_gt)
         
-                # subplot(plots_len,num_cols,(i-1)*num_cols+1); imshow(y_plot, vmin=-a,vmax=a,interpolation="none", cmap="gray")
-                # axis("off"); title(L"rtm");colorbar(fraction=0.046, pad=0.04);
+        #         # subplot(plots_len,num_cols,(i-1)*num_cols+1); imshow(y_plot, vmin=-a,vmax=a,interpolation="none", cmap="gray")
+        #         # axis("off"); title(L"rtm");colorbar(fraction=0.046, pad=0.04);
         
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+3); imshow(X_post[:,:,1,1],vmin=b,vmax=a, interpolation="none", cmap="gray")
-                axis("off"); title("Posterior sample"); colorbar(fraction=0.046, pad=0.04);
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+3); imshow(X_post[:,:,1,1],vmin=b,vmax=a, interpolation="none", cmap="gray")
+        #         axis("off"); title("Posterior sample"); colorbar(fraction=0.046, pad=0.04);
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+4); imshow(X_post[:,:,1,2], vmin=b,vmax=a,interpolation="none", cmap="gray")
-                axis("off");title("Posterior sample") ; colorbar(fraction=0.046, pad=0.04);title("Posterior sample")
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+4); imshow(X_post[:,:,1,2], vmin=b,vmax=a,interpolation="none", cmap="gray")
+        #         axis("off");title("Posterior sample") ; colorbar(fraction=0.046, pad=0.04);title("Posterior sample")
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+5); imshow(x_gt, vmin=b,vmax=a,   interpolation="none", cmap="gray")
-                axis("off"); title(L"Reference $\mathbf{x^{*}}$") ; colorbar(fraction=0.046, pad=0.04);
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+5); imshow(x_gt, vmin=b,vmax=a,   interpolation="none", cmap="gray")
+        #         axis("off"); title(L"Reference $\mathbf{x^{*}}$") ; colorbar(fraction=0.046, pad=0.04);
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+6); imshow(x_hat , vmin=b,vmax=a,   interpolation="none", cmap="gray")
-                axis("off"); title("Posterior mean | SSIM="*string(ssim_i)) ; colorbar(fraction=0.046, pad=0.04);
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+6); imshow(x_hat , vmin=b,vmax=a,   interpolation="none", cmap="gray")
+        #         axis("off"); title("Posterior mean | SSIM="*string(ssim_i)) ; colorbar(fraction=0.046, pad=0.04);
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+7); imshow(error_mean , vmin=0,vmax=nothing, interpolation="none", cmap="gray")
-                axis("off");title("Error | RMSE="*string(rmse_i)) ; cb = colorbar(fraction=0.046, pad=0.04);
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+7); imshow(error_mean , vmin=0,vmax=nothing, interpolation="none", cmap="gray")
+        #         axis("off");title("Error | RMSE="*string(rmse_i)) ; cb = colorbar(fraction=0.046, pad=0.04);
         
-                subplot(plots_len,num_cols,(i-1)*num_cols+8); imshow(X_post_std[:,:,1,1] , vmin=0,vmax=nothing,interpolation="none", cmap="gray")
-                axis("off"); title("Standard deviation") ;cb =colorbar(fraction=0.046, pad=0.04);
+        #         subplot(plots_len,num_cols,(i-1)*num_cols+8); imshow(X_post_std[:,:,1,1] , vmin=0,vmax=nothing,interpolation="none", cmap="gray")
+        #         axis("off"); title("Standard deviation") ;cb =colorbar(fraction=0.046, pad=0.04);
 
-        end
+        # end
     
         tight_layout()
         fig_name = @strdict e lr n_hidden L K batch_size
