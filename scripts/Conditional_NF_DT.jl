@@ -158,21 +158,19 @@ Zytest = randn(Float32, 64,16,1024,batch_size);
 X = train_x1[:, :, :, 1:batch_size];
 Y = train_Y[:, :, :, 1:batch_size];
 Y = Y + noise_lev_y
-
+_, _, lgdet = G.forward(X|> device, Y|> device)
 
 for e=1:n_epochs# epoch loop
 
     	@time begin
 	        
 	        # Forward pass of normalizing flow
-	        _, _, lgdet = G.forward(X|> device, Y|> device)
+	        
 
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
-	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
-
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
-            G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
+            G.backward_inv(grad_fake_images/0.5*batch_size, fakeimgs, invcall;)
 
             mseloss = Flux.mse(X|> device,fakeimgs)
             append!(mseval, mseloss)
@@ -192,11 +190,6 @@ for e=1:n_epochs# epoch loop
             plt.title("mseloss $e")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
-            plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec/logdet$e.png")
-            plt.close()
-    	end
 
     if(mod(e,plot_every)==0) 
 
