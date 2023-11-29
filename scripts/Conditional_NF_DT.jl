@@ -201,7 +201,7 @@ for e=1:n_epochs# epoch loop
     if(mod(e,plot_every)==0) 
 
         shot_rec = zeros(Float32,2048,512,1,8)
-        shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)
+        shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)[1] |> cpu;
 
 
         plot_sdata(X[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
