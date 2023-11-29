@@ -157,29 +157,18 @@ Ztest = randn(Float32, nx,ny,1,batch_size);
 Zytest = randn(Float32, 64,16,1024,batch_size); 
 X = train_x1[:, :, :, 1:batch_size];
 Y = train_Y[:, :, :, 1:batch_size];
+Y = Y + noise_lev_y
 
 
 for e=1:n_epochs# epoch loop
-    # sigma_noise = sigmoid_schedule(e,n_epochs,tau)
-    # alpha_noise = sqrt(1-sigma_noise^2)
-    # idx_e = reshape(randperm(n_train), batch_size, n_batches)
-    # for b = 1:n_batches # batch loop
 
     	@time begin
-	        # X = train_x1[:, :, :, idx_e[:,b]];
-	        # Y = train_Y[:, :, :, idx_e[:,b]];
-	        # X .+= noise_lev_x*randn(Float32, size(X));
-            # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
-
-			Y = Y + noise_lev_y;
-      
+	        
 	        # Forward pass of normalizing flow
 	        _, _, lgdet = G.forward(X|> device, Y|> device)
 
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
-	        # Loss function is l2 norm 
-	        # append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
@@ -199,10 +188,6 @@ for e=1:n_epochs# epoch loop
             
 
 	        Base.flush(Base.stdout)
-            # plt.plot(loss)
-            # plt.title("loss $b")
-            # plt.savefig("../plots/Shot_rec/loss$e.png")
-            # plt.close()
             plt.plot(mseval)
             plt.title("mseloss $b")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
@@ -212,83 +197,19 @@ for e=1:n_epochs# epoch loop
             plt.savefig("../plots/Shot_rec/logdet$e.png")
             plt.close()
     	end
-    # end
 
     if(mod(e,plot_every)==0) 
-        # for (test_x, test_y, file_str) in [[train_x1,train_Y, "train"], [test_x1, test_Y, "test"]]
-        #     num_cols = 8
-        #     plots_len = 2
-        #     all_sampls = size(test_x)[end]
-        #     fig = figure(figsize=(25, 5)); 
-        #     for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
-        #         x = test_x[:,:,:,ind:ind] 
-        #         y = test_y[:,:,:,ind:ind]
-        #         y .+= randn(Float32).*randn(Float32, size(y))./1000;
-        
-        #         # make samples from posterior for train sample 
-        #         X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
-        #         X_post_mean = mean(X_post,dims=4)
-        #         X_post_std  = std(X_post, dims=4)
-        
-        #         x_hat = X_post_mean[:,:,1,1]
-        #         x_gt =  x[:,:,1,1]
-        #         error_mean = abs.(x_hat-x_gt)
-        
-        #         ssim_i = round(assess_ssim(x_hat, x_gt),digits=2)
-        #         rmse_i = round(sqrt(mean(error_mean.^2)),digits=4)
-        
-        #         y_plot = y[:,:,1,1]'
-        #         a = maximum(x_gt)
-        #         b = minimum(x_gt)
-        
-        #         # subplot(plots_len,num_cols,(i-1)*num_cols+1); imshow(y_plot, vmin=-a,vmax=a,interpolation="none", cmap="gray")
-        #         # axis("off"); title(L"rtm");colorbar(fraction=0.046, pad=0.04);
-        
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+3); imshow(X_post[:,:,1,1],vmin=b,vmax=a, interpolation="none", cmap="gray")
-        #         axis("off"); title("Posterior sample"); colorbar(fraction=0.046, pad=0.04);
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+4); imshow(X_post[:,:,1,2], vmin=b,vmax=a,interpolation="none", cmap="gray")
-        #         axis("off");title("Posterior sample") ; colorbar(fraction=0.046, pad=0.04);title("Posterior sample")
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+5); imshow(x_gt, vmin=b,vmax=a,   interpolation="none", cmap="gray")
-        #         axis("off"); title(L"Reference $\mathbf{x^{*}}$") ; colorbar(fraction=0.046, pad=0.04);
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+6); imshow(x_hat , vmin=b,vmax=a,   interpolation="none", cmap="gray")
-        #         axis("off"); title("Posterior mean | SSIM="*string(ssim_i)) ; colorbar(fraction=0.046, pad=0.04);
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+7); imshow(error_mean , vmin=0,vmax=nothing, interpolation="none", cmap="gray")
-        #         axis("off");title("Error | RMSE="*string(rmse_i)) ; cb = colorbar(fraction=0.046, pad=0.04);
-        
-        #         subplot(plots_len,num_cols,(i-1)*num_cols+8); imshow(X_post_std[:,:,1,1] , vmin=0,vmax=nothing,interpolation="none", cmap="gray")
-        #         axis("off"); title("Standard deviation") ;cb =colorbar(fraction=0.046, pad=0.04);
-
-        # end
     
         tight_layout()
         fig_name = @strdict e lr n_hidden L K batch_size
         safesave(joinpath(plot_path, savename(fig_name; digits=6)*"_"*file_str*".png"), fig); close(fig)
 
-        
-        XAD = train_x1[:,:,:,1:8]
-        # XA = train_x1[:,:,:,1:8]
-
-        YAD = train_Y[:,:,:,1:8]
-        YAD = YAD + noise_lev_y
-        # YA = train_Y[:,:,:,4:5]
 
         shot_rec = zeros(Float32,2048,512,1,8)
-
-        _, Zy_fixed_train, _ = G.forward(XAD |> device, YAD |> device); #needs to set the proper sizes here
-        ZX_noise_i = randn(Float32, 2048,512,1,8)|> device
-        # shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
         shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)
 
-        # _, Zy_fixed_train, _ = G.forward(XA |> device, YA |> device); #needs to set the proper sizes here
-        # ZX_noise_i = randn(Float32, 2048,512,1,2)|> device
-        # shot_rec[:,:,:,3:4] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
 
-        plot_sdata(XAD[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(X[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record train ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den train$e.png")
         plt.close()
@@ -304,30 +225,6 @@ for e=1:n_epochs# epoch loop
         plt.close()
 
 
-        # sum = loss + logdet
-		# sum_test = loss_test + logdet_test
-
-		# fig1 = figure(figsize=(20,20))
-		# subplot(3,1,1); title("L2 Term: train="*string(loss[end])*" test="*string(loss_test[end]))
-		# plot(loss, label="train");
-		# plot(n_batches:n_batches:n_batches*e, loss_test, label="test"); 
-		# axhline(y=1,color="red",linestyle="--",label="Normal Noise")
-		# xlabel("Parameter Update"); legend();
-		# ylim(0,2)
-
-		# subplot(3,1,2); title("Logdet Term: train="*string(logdet[end])*" test="*string(logdet_test[end]))
-		# plot(logdet);
-		# plot(n_batches:n_batches:n_batches*e, logdet_test);
-		# xlabel("Parameter Update") ;
-
-		# subplot(3,1,3); title("Total Objective: train="*string(sum[end])*" test="*string(sum_test[end]))
-		# plot(sum); 
-		# plot(n_batches:n_batches:n_batches*e, sum_test); 
-		# xlabel("Parameter Update") ;
-
-        # tight_layout()
-		# fig_name = @strdict freeze_conv opt_adam clip_norm  e n_epochs n_train  lr lr_rate lr_step noise_lev n_hidden L K batch_size
-		# safesave(joinpath(plot_path,savename(fig_name; digits=6)*"_log.png"), fig1); close(fig1)
     end
 
 
@@ -335,6 +232,193 @@ for e=1:n_epochs# epoch loop
 
 
 end
+
+
+
+
+
+
+
+
+
+
+
+# for e=1:n_epochs# epoch loop
+#     # sigma_noise = sigmoid_schedule(e,n_epochs,tau)
+#     # alpha_noise = sqrt(1-sigma_noise^2)
+#     # idx_e = reshape(randperm(n_train), batch_size, n_batches)
+#     # for b = 1:n_batches # batch loop
+
+#     	@time begin
+# 	        # X = train_x1[:, :, :, idx_e[:,b]];
+# 	        # Y = train_Y[:, :, :, idx_e[:,b]];
+# 	        # X .+= noise_lev_x*randn(Float32, size(X));
+#             # X = alpha_noise .* X + sigma_noise*randn(Float32, size(X));
+
+# 			# Y = Y + noise_lev_y;
+      
+# 	        # Forward pass of normalizing flow
+# 	        _, _, lgdet = G.forward(X|> device, Y|> device)
+
+#             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
+
+# 	        # Loss function is l2 norm 
+# 	        # append!(loss, norm(Zx)^2 / (N*batch_size))  # normalize by image size and batch size
+# 	        append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
+
+#             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
+#             G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
+
+#             mseloss = Flux.mse(X|> device,fakeimgs)
+#             append!(mseval, mseloss)
+
+#             for p in get_params(G)
+#                 Flux.update!(opt,p.data,p.grad)
+#             end
+#             clear_grad!(G)
+
+# 	        println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
+# 	            "; f l2 = ",  loss[end], 
+#                 "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "; mse = ", mseloss, "\n")
+            
+
+# 	        Base.flush(Base.stdout)
+#             # plt.plot(loss)
+#             # plt.title("loss $b")
+#             # plt.savefig("../plots/Shot_rec/loss$e.png")
+#             # plt.close()
+#             plt.plot(mseval)
+#             plt.title("mseloss $b")
+#             plt.savefig("../plots/Shot_rec/mseloss$e.png")
+#             plt.close()
+#             plt.plot(logdet_train)
+#             plt.title("logdet $b")
+#             plt.savefig("../plots/Shot_rec/logdet$e.png")
+#             plt.close()
+#     	end
+#     # end
+
+#     if(mod(e,plot_every)==0) 
+#         # for (test_x, test_y, file_str) in [[train_x1,train_Y, "train"], [test_x1, test_Y, "test"]]
+#         #     num_cols = 8
+#         #     plots_len = 2
+#         #     all_sampls = size(test_x)[end]
+#         #     fig = figure(figsize=(25, 5)); 
+#         #     for (i,ind) in enumerate((1:div(all_sampls,3):all_sampls)[1:plots_len])
+#         #         x = test_x[:,:,:,ind:ind] 
+#         #         y = test_y[:,:,:,ind:ind]
+#         #         y .+= randn(Float32).*randn(Float32, size(y))./1000;
+        
+#         #         # make samples from posterior for train sample 
+#         #         X_post = posterior_sampler(G,  y, size(x); device=device, num_samples=num_post_samples,batch_size)|> cpu
+#         #         X_post_mean = mean(X_post,dims=4)
+#         #         X_post_std  = std(X_post, dims=4)
+        
+#         #         x_hat = X_post_mean[:,:,1,1]
+#         #         x_gt =  x[:,:,1,1]
+#         #         error_mean = abs.(x_hat-x_gt)
+        
+#         #         ssim_i = round(assess_ssim(x_hat, x_gt),digits=2)
+#         #         rmse_i = round(sqrt(mean(error_mean.^2)),digits=4)
+        
+#         #         y_plot = y[:,:,1,1]'
+#         #         a = maximum(x_gt)
+#         #         b = minimum(x_gt)
+        
+#         #         # subplot(plots_len,num_cols,(i-1)*num_cols+1); imshow(y_plot, vmin=-a,vmax=a,interpolation="none", cmap="gray")
+#         #         # axis("off"); title(L"rtm");colorbar(fraction=0.046, pad=0.04);
+        
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+3); imshow(X_post[:,:,1,1],vmin=b,vmax=a, interpolation="none", cmap="gray")
+#         #         axis("off"); title("Posterior sample"); colorbar(fraction=0.046, pad=0.04);
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+4); imshow(X_post[:,:,1,2], vmin=b,vmax=a,interpolation="none", cmap="gray")
+#         #         axis("off");title("Posterior sample") ; colorbar(fraction=0.046, pad=0.04);title("Posterior sample")
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+5); imshow(x_gt, vmin=b,vmax=a,   interpolation="none", cmap="gray")
+#         #         axis("off"); title(L"Reference $\mathbf{x^{*}}$") ; colorbar(fraction=0.046, pad=0.04);
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+6); imshow(x_hat , vmin=b,vmax=a,   interpolation="none", cmap="gray")
+#         #         axis("off"); title("Posterior mean | SSIM="*string(ssim_i)) ; colorbar(fraction=0.046, pad=0.04);
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+7); imshow(error_mean , vmin=0,vmax=nothing, interpolation="none", cmap="gray")
+#         #         axis("off");title("Error | RMSE="*string(rmse_i)) ; cb = colorbar(fraction=0.046, pad=0.04);
+        
+#         #         subplot(plots_len,num_cols,(i-1)*num_cols+8); imshow(X_post_std[:,:,1,1] , vmin=0,vmax=nothing,interpolation="none", cmap="gray")
+#         #         axis("off"); title("Standard deviation") ;cb =colorbar(fraction=0.046, pad=0.04);
+
+#         # end
+    
+#         tight_layout()
+#         fig_name = @strdict e lr n_hidden L K batch_size
+#         safesave(joinpath(plot_path, savename(fig_name; digits=6)*"_"*file_str*".png"), fig); close(fig)
+
+        
+#         XAD = train_x1[:,:,:,1:8]
+#         # XA = train_x1[:,:,:,1:8]
+
+#         YAD = train_Y[:,:,:,1:8]
+#         YAD = YAD + noise_lev_y
+#         # YA = train_Y[:,:,:,4:5]
+
+#         shot_rec = zeros(Float32,2048,512,1,8)
+
+#         _, Zy_fixed_train, _ = G.forward(XAD |> device, YAD |> device); #needs to set the proper sizes here
+#         ZX_noise_i = randn(Float32, 2048,512,1,8)|> device
+#         # shot_rec[:,:,:, 1:8] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
+#         shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)
+
+#         # _, Zy_fixed_train, _ = G.forward(XA |> device, YA |> device); #needs to set the proper sizes here
+#         # ZX_noise_i = randn(Float32, 2048,512,1,2)|> device
+#         # shot_rec[:,:,:,3:4] = G.inverse( ZX_noise_i,Zy_fixed_train)[1] |> cpu;
+
+#         plot_sdata(XAD[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+#         plt.title("Shot record train ( vel + den) $e")
+#         plt.savefig("../plots/Shot_rec/vel+den train$e.png")
+#         plt.close()
+
+#         plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+#         plt.title("Shot record pred ( vel + den) $e")
+#         plt.savefig("../plots/Shot_rec/vel+den$e.png")
+#         plt.close()
+
+#         plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+#         plt.title("Shot record pred ( vel) $e")
+#         plt.savefig("../plots/Shot_rec/vel$e.png")
+#         plt.close()
+
+
+#         # sum = loss + logdet
+# 		# sum_test = loss_test + logdet_test
+
+# 		# fig1 = figure(figsize=(20,20))
+# 		# subplot(3,1,1); title("L2 Term: train="*string(loss[end])*" test="*string(loss_test[end]))
+# 		# plot(loss, label="train");
+# 		# plot(n_batches:n_batches:n_batches*e, loss_test, label="test"); 
+# 		# axhline(y=1,color="red",linestyle="--",label="Normal Noise")
+# 		# xlabel("Parameter Update"); legend();
+# 		# ylim(0,2)
+
+# 		# subplot(3,1,2); title("Logdet Term: train="*string(logdet[end])*" test="*string(logdet_test[end]))
+# 		# plot(logdet);
+# 		# plot(n_batches:n_batches:n_batches*e, logdet_test);
+# 		# xlabel("Parameter Update") ;
+
+# 		# subplot(3,1,3); title("Total Objective: train="*string(sum[end])*" test="*string(sum_test[end]))
+# 		# plot(sum); 
+# 		# plot(n_batches:n_batches:n_batches*e, sum_test); 
+# 		# xlabel("Parameter Update") ;
+
+#         # tight_layout()
+# 		# fig_name = @strdict freeze_conv opt_adam clip_norm  e n_epochs n_train  lr lr_rate lr_step noise_lev n_hidden L K batch_size
+# 		# safesave(joinpath(plot_path,savename(fig_name; digits=6)*"_log.png"), fig1); close(fig1)
+#     end
+
+
+# 	end
+
+
+# end
 
 println("... train_cond_64_gen Done! ...") 
 
