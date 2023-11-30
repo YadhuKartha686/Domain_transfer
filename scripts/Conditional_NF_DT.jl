@@ -183,7 +183,7 @@ for e=1:n_epochs# epoch loop
 
 	        println("Iter: epoch=", e, "/", n_epochs, 
 	             
-                "; lgdet = ", logdet_train[end], "; mse = ", mseloss, "\n")
+                "; mse = ", mseloss, "\n")
             
 
 	        Base.flush(Base.stdout)
