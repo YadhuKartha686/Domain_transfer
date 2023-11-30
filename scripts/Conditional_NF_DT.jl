@@ -165,7 +165,7 @@ for e=1:n_epochs# epoch loop
     	@time begin
 	        
 	        # Forward pass of normalizing flow
-	        
+	        _, _, lgdet = G.forward(X|> device, Y|> device)
 
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
@@ -175,6 +175,7 @@ for e=1:n_epochs# epoch loop
 
             mseloss = Flux.mse(X|> device,fakeimgs)
             append!(mseval, mseloss)
+            append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
             for p in get_params(G)
                 Flux.update!(opt,p.data,p.grad)
@@ -190,6 +191,10 @@ for e=1:n_epochs# epoch loop
             plt.plot(mseval)
             plt.title("mseloss $e")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
+            plt.close()
+            plt.plot(logdet_train)
+            plt.title("logdet $b")
+            plt.savefig("../plots/Shot_rec/logdet$e.png")
             plt.close()
         end
 
