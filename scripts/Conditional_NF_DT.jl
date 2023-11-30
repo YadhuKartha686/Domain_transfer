@@ -102,7 +102,7 @@ n_train = 1504
 n_batches = cld(n_train,batch_size)
 
 # Training hyperparameters 
-n_epochs     = 200
+n_epochs     = 500
 device = gpu
 lr = 1f-5
 lr_step   = 5
@@ -147,7 +147,7 @@ logdet_val = [];
 ssim_val   = [];
 l2_cm_val  = [];
 
-vmax_val = 500
+vmax_val = 200
 vmin_val = -125
 num_post_samples=32
 lat_vmax = 8
