@@ -170,7 +170,8 @@ for e=1:n_epochs# epoch loop
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
             grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
-            G.backward_inv(grad_fake_images/0.5*batch_size, fakeimgs, invcall;)
+            grad_fake_images = grad_fake_images .* 2
+            G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
 
             mseloss = Flux.mse(X|> device,fakeimgs)
             append!(mseval, mseloss)
@@ -190,6 +191,7 @@ for e=1:n_epochs# epoch loop
             plt.title("mseloss $e")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
+        end
 
     if(mod(e,plot_every)==0) 
 
