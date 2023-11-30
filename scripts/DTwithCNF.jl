@@ -298,9 +298,7 @@ for e=1:n_epochs# epoch loop
             generator.backward_inv(grad_fake_imagesBfromA, fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
 
             for p in get_params(generator)
-              if !isnothing(p.grad)
                 Flux.update!(optimizer_g,p.data,p.grad)
-              end
             end
             clear_grad!(generator) #### updating generator ####
 
