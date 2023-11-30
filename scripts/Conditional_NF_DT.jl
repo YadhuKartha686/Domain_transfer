@@ -147,7 +147,7 @@ logdet_val = [];
 ssim_val   = [];
 l2_cm_val  = [];
 
-vmax_val = 200
+vmax_val = 500
 vmin_val = -125
 num_post_samples=32
 lat_vmax = 8
