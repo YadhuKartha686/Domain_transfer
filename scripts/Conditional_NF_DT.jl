@@ -193,7 +193,7 @@ for e=1:n_epochs# epoch loop
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
             plt.plot(logdet_train)
-            plt.title("logdet $b")
+            plt.title("logdet $e")
             plt.savefig("../plots/Shot_rec/logdet$e.png")
             plt.close()
         end
