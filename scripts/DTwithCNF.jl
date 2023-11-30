@@ -332,11 +332,11 @@ for e=1:n_epochs# epoch loop
 
             plt.plot(lossnrm)
             plt.title("loss $b")
-            plt.savefig("../plots/Shot_rec/lossnorm$e.png")
+            plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
             plt.close()
             plt.plot(logdet_train)
             plt.title("logdet $b")
-            plt.savefig("../plots/Shot_rec/logdet$e.png")
+            plt.savefig("../plots/Shot_rec_df/logdet$e.png")
             plt.close()
 
         end    
@@ -347,11 +347,11 @@ for e=1:n_epochs# epoch loop
     push!(dissloss, avg_epoch_lossd)
     plt.plot(1:e,genloss[1:e])
     plt.title("genloss $e")
-    plt.savefig("../plots/Shot_rec/genloss$e.png")
+    plt.savefig("../plots/Shot_rec_df/genloss$e.png")
     plt.close()
     plt.plot(1:e,dissloss[1:e])
     plt.title("dissloss $e")
-    plt.savefig("../plots/Shot_rec/dissloss$e.png")
+    plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
     plt.close()
     
     if n_epochs % 1 == 0
@@ -366,23 +366,23 @@ for e=1:n_epochs# epoch loop
 
         plot_sdata(train_xB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record (vel+den) $e")
-        plt.savefig("../plots/Shot_rec/vel+dentrain$e.png")
+        plt.savefig("../plots/Shot_rec_df/vel+dentrain$e.png")
         plt.close()
 
         plot_sdata(train_xA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred vel) $e")
-        plt.savefig("../plots/Shot_rec/veltrain$e.png")
+        plt.savefig("../plots/Shot_rec_df/veltrain$e.png")
         plt.close()
         # Save or visualize the generated_image as needed
 
         plot_sdata(fake_imagesAfromB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel from vel+den) $e")
-        plt.savefig("../plots/Shot_rec/vel+den$e.png")
+        plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
         plt.close()
 
         plot_sdata(fake_imagesBfromA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel+den from vel) $e")
-        plt.savefig("../plots/Shot_rec/vel$e.png")
+        plt.savefig("../plots/Shot_rec_df/vel$e.png")
         plt.close()
         # Save or visualize the generated_image as needed
     end
