@@ -267,7 +267,7 @@ for e=1:n_epochs# epoch loop
             ####### getting fake images from respective domain ########
 
             fake_imagesAfromB = fake_images[:,:,:,5:end]
-            fake_imagesAfromB = fake_images[:,:,:,1:4]
+            fake_imagesBfromA = fake_images[:,:,:,1:4]
 
             invcallA = invcall[:,:,:,5:end]
             invcallB = invcall[:,:,:,1:4]
