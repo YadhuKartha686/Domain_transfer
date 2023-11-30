@@ -102,7 +102,7 @@ n_train = 1504
 n_batches = cld(n_train,batch_size)
 
 # Training hyperparameters 
-n_epochs     = 150
+n_epochs     = 250
 device = gpu
 lr = 5f-5
 lr_step   = 10
