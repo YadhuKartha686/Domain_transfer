@@ -102,10 +102,10 @@ n_train = 1504
 n_batches = cld(n_train,batch_size)
 
 # Training hyperparameters 
-n_epochs     = 500
+n_epochs     = 1000
 device = gpu
-lr = 1f-5
-lr_step   = 5
+lr = 1f-6
+lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
 noise_lev_x  = 0.005f0
@@ -165,7 +165,7 @@ for e=1:n_epochs# epoch loop
     	@time begin
 	        
 	        # Forward pass of normalizing flow
-	        _, _, lgdet = G.forward(X|> device, Y|> device)
+	        # _, _, lgdet = G.forward(X|> device, Y|> device)
 
             fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
@@ -175,7 +175,7 @@ for e=1:n_epochs# epoch loop
 
             mseloss = Flux.mse(X|> device,fakeimgs)
             append!(mseval, mseloss)
-            append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
+            # append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
             for p in get_params(G)
                 Flux.update!(opt,p.data,p.grad)
@@ -192,10 +192,10 @@ for e=1:n_epochs# epoch loop
             plt.title("mseloss $e")
             plt.savefig("../plots/Shot_rec/mseloss$e.png")
             plt.close()
-            plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec/logdet$e.png")
-            plt.close()
+            # plt.plot(logdet_train)
+            # plt.title("logdet $e")
+            # plt.savefig("../plots/Shot_rec/logdet$e.png")
+            # plt.close()
         end
 
     if(mod(e,plot_every)==0) 
