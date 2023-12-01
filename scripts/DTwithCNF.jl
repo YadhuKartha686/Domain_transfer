@@ -67,7 +67,7 @@ n_batches = cld(n_train,batch_size)
 
 n_epochs     = 100
 device = gpu
-lr = 1f-4
+lr = 1f-5
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -313,7 +313,7 @@ for e=1:n_epochs# epoch loop
             lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
             lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
             ml = (norm(ZxA)^2 + norm(ZxB)^2)/(N*batch_size)
-            loss = lossA + lossB + ml
+            loss = lossA + lossB #+ ml
 
             append!(lossnrm, (norm(ZxA)^2 + norm(ZxB)^2)/ (N*batch_size))  # normalize by image size and batch size
 	          append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
