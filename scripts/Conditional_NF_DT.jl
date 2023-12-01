@@ -104,7 +104,7 @@ n_batches = cld(n_train,batch_size)
 # Training hyperparameters 
 n_epochs     = 1000
 device = gpu
-lr = 1f-4
+lr = 1f-5
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -127,10 +127,6 @@ chan_x = 1; chan_y = 1; L = 2; K = 10; n_hidden = 32 # Number of hidden channels
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true) |> device;
 opt = Flux.ADAM(lr)
-
-# Optimizer
-opt_adam = "adam"
-opt = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 
 # Training logs 
 loss   = [];
@@ -178,12 +174,15 @@ for e=1:n_epochs # epoch loop
 		Flux.update!(opt,p.data,p.grad)	
 	end; clear_grad!(G)
 
-	print("Iter: epoch=", e, "/", n_epochs, 
+    mseloss = Flux.mse(X|> device,X_gen)
+    append!(mseval, mseloss)
+
+	print("Iter: epoch=", e, "/", n_epochs,
+        "mse: "mseval[end], 
 	    "; f l2 = ",  loss[end], 
 	    "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
 
-    mseloss = Flux.mse(X|> device,X_gen)
-    append!(mseval, mseloss)
+    
 	Base.flush(Base.stdout)
     plt.plot(loss)
     plt.title("loss $e")

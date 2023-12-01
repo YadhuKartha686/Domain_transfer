@@ -65,7 +65,7 @@ n_batches = cld(n_train,batch_size)
 
 # Define the generator and discriminator networks
 
-n_epochs     = 100
+n_epochs     = 1000
 device = gpu
 lr = 1f-5
 lr_step   = 10
@@ -83,14 +83,12 @@ plot_every   = 1
 n_condmean = 32
 posterior_samples = 32 
 
+# Create conditional network
+# Architecture parametrs
+chan_x = 1; chan_y = 1; L = 2; K = 10; n_hidden = 32 # Number of hidden channels in convolutional residual blocks
 
-K = 9
-L = 5# l=5 is better
-n_hidden = 64
-low = 0.5f0
-n_in = 1
-n_out = 1
-G = NetworkConditionalGlow(n_out, n_in, n_hidden,  L, K; split_scales=split_scales, activation=SigmoidLayer(low=low,high=1.0f0));
+# Create network
+G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true) |> device;
 
 
 model = Chain(
@@ -217,7 +215,7 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-optimizer_g = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
+optimizer_g = Flux.ADAM(lr)
 optimizer_da = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
 genloss=[]
@@ -225,7 +223,7 @@ dissloss = []
 
 lossnrm=[]
 logdet_train=[]
-Ztest = randn(Float32, nx,ny,1,batch_size); 
+Ztest = randn(Float32, nx,ny,1,8); 
 # Main training loop
 for e=1:n_epochs# epoch loop
     epoch_loss_diss=0.0
@@ -356,12 +354,35 @@ for e=1:n_epochs# epoch loop
     if n_epochs % 1 == 0
         
         # Optionally, generate and save a sample image during training
-        _, ZyB, lgdetb = generator.forward(train_xA[:,:,:,1:8]|> device, train_YA[:,:,:,1:8]|> device)
-        _, ZyA, lgdeta = generator.forward(train_xB[:,:,:,1:8]|> device, train_YB[:,:,:,1:8]|> device)
+        XA = train_xA[:, :, :, 1:4];
+        YA = train_YA[:, :, :, 1:4];
+        XA .+= noise_lev_x*randn(Float32, size(XA));
+        YA = YA + noise_lev_y;
+
+            ############# Loading domain B data ###############
+
+        XB = train_xB[:, :, :, 1:4];
+        YB = train_YB[:, :, :, 1:4];
+        XB .+= noise_lev_x*randn(Float32, size(XB));
+        YB = YB + noise_lev_y;
+      
+
+        X = cat(XA, XB,dims=4)
+        Y = cat(YA, YB,dims=4)
+        _, Zy, _ = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
 
-        fake_imagesAfromB,_ = generator.inverse(Ztest,ZyA)
-        fake_imagesBfromA,_ = generator.inverse(Ztest,ZyB)
+        ZyA = Zy[:,:,:,1:4]
+        ZyB = Zy[:,:,:,5:end]
+
+        Zy = cat(ZyB,ZyA,dims=4)
+
+        fake_images,invcall = generator.inverse(Ztest|>device,Zy)  ###### generating images #######
+
+            ####### getting fake images from respective domain ########
+
+        fake_imagesAfromB = fake_images[:,:,:,5:end]
+        fake_imagesBfromA = fake_images[:,:,:,1:4]
 
         plot_sdata(train_xB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record (vel+den) $e")
