@@ -161,7 +161,7 @@ for e=1:n_epochs # epoch loop
 	X_gen_cpu = X_gen |>cpu
 
 
-    gs = gradient(x -> Flux.mse(X|> device,x), X_gen)[1]
+    gs = gradient(x -> Flux.mse(Xt|> device,x), X_gen)[1]
 
 	# Loss function is l2 norm 
 	append!(loss, norm(Z)^2 / N*batch_size)  # normalize by image size and batch size
@@ -178,7 +178,7 @@ for e=1:n_epochs # epoch loop
     append!(mseval, mseloss)
 
 	print("Iter: epoch=", e, "/", n_epochs,
-        "mse: "mseval[end], 
+        "; mse= ", mseval[end], 
 	    "; f l2 = ",  loss[end], 
 	    "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
 
