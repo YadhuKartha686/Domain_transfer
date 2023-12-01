@@ -316,7 +316,7 @@ for e=1:n_epochs# epoch loop
             loss = lossA + lossB + ml
 
             append!(lossnrm, (norm(ZxA)^2 + norm(ZxB)^2)/ (N*batch_size))  # normalize by image size and batch size
-	          append!(logdet_train, (-lgdeta-lgdetb) / N) # logdet is internally normalized by batch size
+	          append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
 
 
             epoch_loss_diss += (lossAd+lossBd)/2
