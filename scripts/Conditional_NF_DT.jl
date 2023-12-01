@@ -192,16 +192,16 @@ for e=1:n_epochs # epoch loop
             
             Base.flush(Base.stdout)
             plt.plot(loss)
-            plt.title("loss $e")
-            plt.savefig("../plots/Shot_rec/loss$e.png")
+            plt.title("loss $b_$e")
+            plt.savefig("../plots/Shot_rec/loss$b_$e.png")
             plt.close()
             plt.plot(mseval)
-            plt.title("mseloss $e")
-            plt.savefig("../plots/Shot_rec/mseloss$e.png")
+            plt.title("mseloss $b_$e")
+            plt.savefig("../plots/Shot_rec/mseloss$b_$e.png")
             plt.close()
             plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec/logdet$e.png")
+            plt.title("logdet $b_$e")
+            plt.savefig("../plots/Shot_rec/logdet$b_$e.png")
             plt.close()
         end
     end
