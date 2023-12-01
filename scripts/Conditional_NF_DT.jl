@@ -184,7 +184,7 @@ for e=1:n_epochs # epoch loop
             mseloss = Flux.mse(X|> device,X_gen)
             append!(mseval, mseloss)
 
-            print("Iter: epoch=", e, "/", n_epochs,"batch=", b, "/", n_batches,
+            print("Iter: epoch=", e, "/", n_epochs,"; batch=", b, "/", n_batches,
                 "; mse= ", mseval[end], 
                 "; f l2 = ",  loss[end], 
                 "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
