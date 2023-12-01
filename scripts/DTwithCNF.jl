@@ -225,6 +225,7 @@ dissloss = []
 
 lossnrm=[]
 logdet_train=[]
+Ztest = randn(Float32, nx,ny,1,batch_size); 
 # Main training loop
 for e=1:n_epochs# epoch loop
     epoch_loss_diss=0.0
@@ -257,12 +258,10 @@ for e=1:n_epochs# epoch loop
 
             ZyA = Zy[:,:,:,1:4]
             ZyB = Zy[:,:,:,5:end]
-            ZxA = Zx[:,:,:,1:4]
-            ZxB = Zx[:,:,:,5:end]
 
             Zy = cat(ZyB,ZyA,dims=4)
 
-            fake_images,invcall = generator.inverse(Zx,Zy)  ###### generating images #######
+            fake_images,invcall = generator.inverse(Ztest|>device,Zy)  ###### generating images #######
 
             ####### getting fake images from respective domain ########
 
@@ -312,10 +311,10 @@ for e=1:n_epochs# epoch loop
             lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
             lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
             lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
-            ml = (norm(ZxA)^2 + norm(ZxB)^2)/(N*batch_size)
+            ml = norm(Zx)^2/(N*batch_size)
             loss = lossA + lossB #+ ml
 
-            append!(lossnrm, (norm(ZxA)^2 + norm(ZxB)^2)/ (N*batch_size))  # normalize by image size and batch size
+            append!(lossnrm, ml)  # normalize by image size and batch size
 	          append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
 
 
@@ -357,12 +356,12 @@ for e=1:n_epochs# epoch loop
     if n_epochs % 1 == 0
         
         # Optionally, generate and save a sample image during training
-        ZxB, ZyB, lgdetb = generator.forward(train_xA[:,:,:,1:8]|> device, train_YA[:,:,:,1:8]|> device)
-        ZxA, ZyA, lgdeta = generator.forward(train_xB[:,:,:,1:8]|> device, train_YB[:,:,:,1:8]|> device)
+        _, ZyB, lgdetb = generator.forward(train_xA[:,:,:,1:8]|> device, train_YA[:,:,:,1:8]|> device)
+        _, ZyA, lgdeta = generator.forward(train_xB[:,:,:,1:8]|> device, train_YB[:,:,:,1:8]|> device)
 
 
-        fake_imagesAfromB,_ = generator.inverse(ZxB,ZyA)
-        fake_imagesBfromA,_ = generator.inverse(ZxA,ZyB)
+        fake_imagesAfromB,_ = generator.inverse(Ztest,ZyA)
+        fake_imagesBfromA,_ = generator.inverse(Ztest,ZyB)
 
         plot_sdata(train_xB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record (vel+den) $e")

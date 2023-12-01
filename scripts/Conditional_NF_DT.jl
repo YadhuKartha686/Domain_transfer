@@ -104,7 +104,7 @@ n_batches = cld(n_train,batch_size)
 # Training hyperparameters 
 n_epochs     = 1000
 device = gpu
-lr = 1f-6
+lr = 1f-4
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -121,15 +121,12 @@ n_condmean = 32
 posterior_samples = 32 
 
 # Create conditional network
-K = 9
-L = 5# l=5 is better
-n_hidden = 64
-low = 0.5f0
-n_in = 1
-n_out = 1
-#Choose model
-G = NetworkConditionalGlow(n_out, n_in, n_hidden,  L, K; split_scales=split_scales, activation=SigmoidLayer(low=low,high=1.0f0));
-G = G |> device;
+# Architecture parametrs
+chan_x = 1; chan_y = 1; L = 2; K = 10; n_hidden = 32 # Number of hidden channels in convolutional residual blocks
+
+# Create network
+G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true) |> device;
+opt = Flux.ADAM(lr)
 
 # Optimizer
 opt_adam = "adam"
@@ -155,56 +152,61 @@ lat_vmin = -8
 
 Ztest = randn(Float32, nx,ny,1,batch_size); 
 Zytest = randn(Float32, 64,16,1024,batch_size); 
-X = train_x1[:, :, :, 1:batch_size];
-Y = train_Y[:, :, :, 1:batch_size];
+Xt = train_x1[:, :, :, 1:batch_size];
+Yt = train_Y[:, :, :, 1:batch_size];
 Y = Y + noise_lev_y
-_, _, lgdet = G.forward(X|> device, Y|> device)
+factor = 1f-13
 
-for e=1:n_epochs# epoch loop
+#pretrain to output water. 
+for e=1:n_epochs # epoch loop
+	Z, Zy_fixed_train, lgdet = G.forward(Xt|> device, Yt|> device); #needs to set the proper sizes here
 
-    	@time begin
-	        
-	        # Forward pass of normalizing flow
-	        # _, _, lgdet = G.forward(X|> device, Y|> device)
+	X_gen, Y_gen  = G.inverse(Ztest|> device,Zy_fixed_train);
+	X_gen_cpu = X_gen |>cpu
 
-            fakeimgs,invcall = G.inverse(Ztest|> device,Zytest|> device)
 
-            grad_fake_images = gradient(x -> Flux.mse(X|> device,x), fakeimgs)[1]
-            grad_fake_images = grad_fake_images .* 2
-            G.backward_inv(grad_fake_images/batch_size, fakeimgs, invcall;)
+    gs = gradient(x -> Flux.mse(X|> device,x), X_gen)[1]
 
-            mseloss = Flux.mse(X|> device,fakeimgs)
-            append!(mseval, mseloss)
-            append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
+	# Loss function is l2 norm 
+	append!(loss, norm(Z)^2 / N*batch_size)  # normalize by image size and batch size
+	append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
-            for p in get_params(G)
-                Flux.update!(opt,p.data,p.grad)
-            end
-            clear_grad!(G)
+	# Set gradients of flow and summary network
+	ΔX, X, ΔY = G.backward_inv(((gs ./ factor)|>device) / batch_size, X_gen, Y_gen)
 
-	        println("Iter: epoch=", e, "/", n_epochs, 
-	             
-                "; mse = ", mseloss, "\n")
-            
+	for p in get_params(G) 
+		Flux.update!(opt,p.data,p.grad)	
+	end; clear_grad!(G)
 
-	        Base.flush(Base.stdout)
-            plt.plot(mseval)
-            plt.title("mseloss $e")
-            plt.savefig("../plots/Shot_rec/mseloss$e.png")
-            plt.close()
-            plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec/logdet$e.png")
-            plt.close()
-        end
+	print("Iter: epoch=", e, "/", n_epochs, 
+	    "; f l2 = ",  loss[end], 
+	    "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
+
+    mseloss = Flux.mse(X|> device,X_gen)
+    append!(mseval, mseloss)
+	Base.flush(Base.stdout)
+    plt.plot(loss)
+    plt.title("loss $e")
+    plt.savefig("../plots/Shot_rec/loss$e.png")
+    plt.close()
+    plt.plot(mseval)
+    plt.title("mseloss $e")
+    plt.savefig("../plots/Shot_rec/mseloss$e.png")
+    plt.close()
+    plt.plot(logdet_train)
+    plt.title("logdet $e")
+    plt.savefig("../plots/Shot_rec/logdet$e.png")
+    plt.close()
 
     if(mod(e,plot_every)==0) 
 
         shot_rec = zeros(Float32,2048,512,1,batch_size)
-        shot_rec[:,:,:, 1:batch_size] = G.inverse(Ztest|> device,Zytest|> device)[1] |> cpu;
+        _, Zy_fixed_train, lgdet = G.forward(Xt|> device, Yt|> device); #needs to set the proper sizes here
+
+        shot_rec[:,:,:, 1:batch_size] = G.inverse(Ztest|> device,Zy_fixed_train)[1] |> cpu;
 
 
-        plot_sdata(X[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
+        plot_sdata(Xt[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record train ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den train$e.png")
         plt.close()
@@ -216,8 +218,6 @@ for e=1:n_epochs# epoch loop
 
 
     end
-
-
 end
 
 
