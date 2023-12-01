@@ -209,6 +209,9 @@ for e=1:n_epochs # epoch loop
     if(mod(e,plot_every)==0) 
 
         shot_rec = zeros(Float32,2048,512,1,batch_size)
+        Xt = train_x1[:, :, :, 1:batch_size];
+        Yt = train_Y[:, :, :, 1:batch_size];
+        Yt = Yt + noise_lev_y
         _, Zy_fixed_train, lgdet = G.forward(Xt|> device, Yt|> device); #needs to set the proper sizes here
 
         shot_rec[:,:,:, 1:batch_size] = G.inverse(Ztest|> device,Zy_fixed_train)[1] |> cpu;
