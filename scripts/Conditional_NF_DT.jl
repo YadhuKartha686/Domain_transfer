@@ -150,7 +150,7 @@ Ztest = randn(Float32, nx,ny,1,batch_size);
 Zytest = randn(Float32, 64,16,1024,batch_size); 
 Xt = train_x1[:, :, :, 1:batch_size];
 Yt = train_Y[:, :, :, 1:batch_size];
-Y = Y + noise_lev_y
+Yt = Yt + noise_lev_y
 factor = 1f-13
 
 #pretrain to output water. 
