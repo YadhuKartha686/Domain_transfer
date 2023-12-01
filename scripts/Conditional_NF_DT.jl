@@ -93,7 +93,7 @@ end
 
 
 # Choose params
-batch_size = 1
+batch_size = 8
 nx,ny = 2048, 512
 N = nx*ny;
 
@@ -148,54 +148,63 @@ lat_vmin = -8
 
 Ztest = randn(Float32, nx,ny,1,batch_size); 
 Zytest = randn(Float32, 64,16,1024,batch_size); 
-Xt = train_x1[:, :, :, 1:batch_size];
-Yt = train_Y[:, :, :, 1:batch_size];
-Yt = Yt + noise_lev_y
-factor = 1f-13
+# Xt = train_x1[:, :, :, 1:batch_size];
+# Yt = train_Y[:, :, :, 1:batch_size];
+# Yt = Yt + noise_lev_y
+factor = 1f-15
 
-#pretrain to output water. 
+
 for e=1:n_epochs # epoch loop
-	Z, Zy_fixed_train, lgdet = G.forward(Xt|> device, Yt|> device); #needs to set the proper sizes here
+    idx_e = reshape(randperm(n_train), batch_size, n_batches)
+    for b = 1:n_batches # batch loop
 
-	X_gen, Y_gen  = G.inverse(Ztest|> device,Zy_fixed_train);
-	X_gen_cpu = X_gen |>cpu
+        @time begin
+            Xt = train_x1[:, :, :, idx_e[:,b]];
+            Yt = train_Y[:, :, :, idx_e[:,b]];
+            Yt = Yt + noise_lev_y
+            Z, Zy_fixed_train, lgdet = G.forward(Xt|> device, Yt|> device); #needs to set the proper sizes here
+
+            X_gen, Y_gen  = G.inverse(Ztest|> device,Zy_fixed_train);
+            X_gen_cpu = X_gen |>cpu
 
 
-    gs = gradient(x -> Flux.mse(Xt|> device,x), X_gen)[1]
+            gs = gradient(x -> Flux.mse(Xt|> device,x), X_gen)[1]
 
-	# Loss function is l2 norm 
-	append!(loss, norm(Z)^2 / N*batch_size)  # normalize by image size and batch size
-	append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
+            # Loss function is l2 norm 
+            append!(loss, norm(Z)^2 / N*batch_size)  # normalize by image size and batch size
+            append!(logdet_train, -lgdet / N) # logdet is internally normalized by batch size
 
-	# Set gradients of flow and summary network
-	ΔX, X, ΔY = G.backward_inv(((gs ./ factor)|>device) / batch_size, X_gen, Y_gen)
+            # Set gradients of flow and summary network
+            ΔX, X, ΔY = G.backward_inv(((gs ./ factor)|>device) / batch_size, X_gen, Y_gen)
 
-	for p in get_params(G) 
-		Flux.update!(opt,p.data,p.grad)	
-	end; clear_grad!(G)
+            for p in get_params(G) 
+                Flux.update!(opt,p.data,p.grad)	
+            end; clear_grad!(G)
 
-    mseloss = Flux.mse(X|> device,X_gen)
-    append!(mseval, mseloss)
+            mseloss = Flux.mse(X|> device,X_gen)
+            append!(mseval, mseloss)
 
-	print("Iter: epoch=", e, "/", n_epochs,
-        "; mse= ", mseval[end], 
-	    "; f l2 = ",  loss[end], 
-	    "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
+            print("Iter: epoch=", e, "/", n_epochs,"batch=", b, "/", n_batches,
+                "; mse= ", mseval[end], 
+                "; f l2 = ",  loss[end], 
+                "; lgdet = ", logdet_train[end], "; f = ", loss[end] + logdet_train[end], "\n")
 
-    
-	Base.flush(Base.stdout)
-    plt.plot(loss)
-    plt.title("loss $e")
-    plt.savefig("../plots/Shot_rec/loss$e.png")
-    plt.close()
-    plt.plot(mseval)
-    plt.title("mseloss $e")
-    plt.savefig("../plots/Shot_rec/mseloss$e.png")
-    plt.close()
-    plt.plot(logdet_train)
-    plt.title("logdet $e")
-    plt.savefig("../plots/Shot_rec/logdet$e.png")
-    plt.close()
+            
+            Base.flush(Base.stdout)
+            plt.plot(loss)
+            plt.title("loss $e")
+            plt.savefig("../plots/Shot_rec/loss$e.png")
+            plt.close()
+            plt.plot(mseval)
+            plt.title("mseloss $e")
+            plt.savefig("../plots/Shot_rec/mseloss$e.png")
+            plt.close()
+            plt.plot(logdet_train)
+            plt.title("logdet $e")
+            plt.savefig("../plots/Shot_rec/logdet$e.png")
+            plt.close()
+        end
+    end
 
     if(mod(e,plot_every)==0) 
 
