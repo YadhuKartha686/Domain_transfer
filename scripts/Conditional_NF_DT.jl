@@ -158,7 +158,7 @@ Zytest = randn(Float32, 64,16,1024,batch_size);
 X = train_x1[:, :, :, 1:batch_size];
 Y = train_Y[:, :, :, 1:batch_size];
 Y = Y + noise_lev_y
-# _, _, lgdet = G.forward(X|> device, Y|> device)
+_, _, lgdet = G.forward(X|> device, Y|> device)
 
 for e=1:n_epochs# epoch loop
 
