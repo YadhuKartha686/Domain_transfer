@@ -224,6 +224,7 @@ dissloss = []
 lossnrm=[]
 logdet_train=[]
 Ztest = randn(Float32, nx,ny,1,8); 
+factor = 1f-15
 # Main training loop
 for e=1:n_epochs# epoch loop
     epoch_loss_diss=0.0
@@ -288,11 +289,11 @@ for e=1:n_epochs# epoch loop
 
             ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                       
-            grad_fake_imagesAfromB = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-            grad_fake_imagesBfromA = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+            gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+            gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
-            generator.backward_inv(grad_fake_imagesAfromB, fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
-            generator.backward_inv(grad_fake_imagesBfromA, fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
+            generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
+            generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
 
             for p in get_params(generator)
                 Flux.update!(optimizer_g,p.data,p.grad)
