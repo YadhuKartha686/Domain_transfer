@@ -93,7 +93,7 @@ end
 
 
 # Choose params
-batch_size = 8
+batch_size = 1
 nx,ny = 2048, 512
 N = nx*ny;
 
@@ -200,7 +200,7 @@ for e=1:n_epochs# epoch loop
 
     if(mod(e,plot_every)==0) 
 
-        shot_rec = zeros(Float32,2048,512,1,8)
+        shot_rec = zeros(Float32,2048,512,1,batch_size)
         shot_rec[:,:,:, 1:8] = G.inverse(Ztest|> device,Zytest|> device)[1] |> cpu;
 
 
@@ -212,11 +212,6 @@ for e=1:n_epochs# epoch loop
         plot_sdata(shot_rec[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record pred ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den$e.png")
-        plt.close()
-
-        plot_sdata(shot_rec[:,:,:,4],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-        plt.title("Shot record pred ( vel) $e")
-        plt.savefig("../plots/Shot_rec/vel$e.png")
         plt.close()
 
 
