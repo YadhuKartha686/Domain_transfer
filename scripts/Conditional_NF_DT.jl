@@ -151,7 +151,7 @@ Zytest = randn(Float32, 64,16,1024,batch_size);
 # Xt = train_x1[:, :, :, 1:batch_size];
 # Yt = train_Y[:, :, :, 1:batch_size];
 # Yt = Yt + noise_lev_y
-factor = 1f-13
+factor = 1f-20
 
 
 for e=1:n_epochs # epoch loop

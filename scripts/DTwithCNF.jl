@@ -224,7 +224,7 @@ dissloss = []
 lossnrm=[]
 logdet_train=[]
 Ztest = randn(Float32, nx,ny,1,8); 
-factor = 1f-13
+factor = 1f-20
 # Main training loop
 for e=1:n_epochs# epoch loop
     epoch_loss_diss=0.0
