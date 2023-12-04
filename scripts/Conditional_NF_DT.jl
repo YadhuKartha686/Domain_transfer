@@ -102,6 +102,15 @@ for e=1:n_epochs # epoch loop
         plt.title("Shot record pred ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den$e.png")
         plt.close()
+
+        plt.plot(loss)
+        plt.title("loss $e")
+        plt.savefig("../plots/Shot_rec/lossnorm$e.png")
+        plt.close()
+        plt.plot(logdet_train)
+        plt.title("logdet $e")
+        plt.savefig("../plots/Shot_rec/logdet$e.png")
+        plt.close()
 	end
 
 	# Loss function is l2 norm 
