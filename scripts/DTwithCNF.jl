@@ -60,7 +60,7 @@ n_batches = cld(n_train,batch_size)
 
 # Define the generator and discriminator networks
 
-n_epochs     = 10000
+n_epochs     = 20000
 device = gpu
 lr     = 4f-3
 lr_step   = 10
