@@ -224,9 +224,9 @@ for e=1:n_epochs# epoch loop
 
           ############# Loading domain A data ##############    
 
-          X = cat(XA, XB,dims=4)
+          X = cat(XB, XA,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -239,8 +239,8 @@ for e=1:n_epochs# epoch loop
 
           ####### getting fake images from respective domain ########
 
-          fake_imagesAfromB = fake_images[:,:,:,1:1]
-          fake_imagesBfromA = fake_images[:,:,:,2:2]
+          fake_imagesAfromB = fake_images[:,:,:,2:2]
+          fake_imagesBfromA = fake_images[:,:,:,1:1]
 
           invcallA = invcall[:,:,:,2:2]
           invcallB = invcall[:,:,:,1:1]
@@ -285,10 +285,17 @@ for e=1:n_epochs# epoch loop
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
           lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
           lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
-          ml = norm(Zx)^2/(N*2)
+          f_all = 0
+          for i in 1:2
+            X_gen_cpu = fake_images|>cpu
+            g = (X_gen_cpu[:,:,1,i] .- X)  
+            f = norm(g)^2
+            # gs[:,:,:,i] =  g
+            f_all += f
+          end
           loss = lossA + lossB #+ ml
 
-          append!(lossnrm, ml)  # normalize by image size and batch size
+          append!(lossnrm, f_all / 2)  # normalize by image size and batch size
           append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
           append!(genloss, loss)  # normalize by image size and batch size
           append!(dissloss, (lossAd+lossBd)/2 ) # logdet is internally normalized by batch size
@@ -305,25 +312,8 @@ for e=1:n_epochs# epoch loop
 
           Base.flush(Base.stdout)
 
-          plt.plot(lossnrm)
-          plt.title("loss $e")
-          plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
-          plt.close()
-          plt.plot(logdet_train)
-          plt.title("logdet $e")
-          plt.savefig("../plots/Shot_rec_df/logdet$e.png")
-          plt.close()
-          plt.plot(1:e,genloss[1:e])
-          plt.title("genloss $e")
-          plt.savefig("../plots/Shot_rec_df/genloss$e.png")
-          plt.close()
-          plt.plot(1:e,dissloss[1:e])
-          plt.title("dissloss $e")
-          plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
-          plt.close()
-
     end
-      if mod(e,20) == 0
+      if mod(e,100) == 0
             plot_sdata(XA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
             plt.title("Shot record train ( vel + den) $e")
             plt.savefig("../plots/Shot_rec_df/vel+den train$e.png")
@@ -337,6 +327,23 @@ for e=1:n_epochs# epoch loop
             plot_sdata(fake_imagesBfromA[:,:,:,1]|>cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
             plt.title("Shot record pred B from A $e")
             plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
+            plt.close()
+
+            plt.plot(lossnrm)
+            plt.title("loss $e")
+            plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
+            plt.close()
+            plt.plot(logdet_train)
+            plt.title("logdet $e")
+            plt.savefig("../plots/Shot_rec_df/logdet$e.png")
+            plt.close()
+            plt.plot(1:e,genloss[1:e])
+            plt.title("genloss $e")
+            plt.savefig("../plots/Shot_rec_df/genloss$e.png")
+            plt.close()
+            plt.plot(1:e,dissloss[1:e])
+            plt.title("dissloss $e")
+            plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
             plt.close()
       end
 end

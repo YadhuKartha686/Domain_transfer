@@ -72,7 +72,7 @@ Z_fix =  randn(Float32,size(x_gt))
 y = randn(Float32,size(x_gt))
 
 loss      = []; logdet_train = []; 
-n_epochs = 10000
+n_epochs = 25000
 #pretrain to output water. 
 for e=1:n_epochs # epoch loop
 	Y_train_latent_repeat = repeat(y |>cpu, 1, 1, 1, batch_size) |> device
@@ -91,8 +91,7 @@ for e=1:n_epochs # epoch loop
 	end
 	gs = gradient(x -> Flux.mse(x_gt|> device,x), X_gen)[1]
 
-	if mod(e,20) == 0
-		gs = gs|> cpu
+	if mod(e,100) == 0
 	    plot_sdata(x_gt[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
         plt.title("Shot record train ( vel + den) $e")
         plt.savefig("../plots/Shot_rec/vel+den train$e.png")
