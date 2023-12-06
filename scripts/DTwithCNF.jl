@@ -224,7 +224,7 @@ for e=1:n_epochs# epoch loop
 
           ############# Loading domain A data ##############    
 
-          X = cat(XB, XA,dims=4)
+          X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
           Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
 
@@ -242,8 +242,8 @@ for e=1:n_epochs# epoch loop
           fake_imagesAfromB = fake_images[:,:,:,2:2]
           fake_imagesBfromA = fake_images[:,:,:,1:1]
 
-          invcallA = invcall[:,:,:,2:2]
-          invcallB = invcall[:,:,:,1:1]
+          # invcallA = invcall[:,:,:,2:2]
+          # invcallB = invcall[:,:,:,1:1]
 
           ####### discrim training ########
 
@@ -267,8 +267,11 @@ for e=1:n_epochs# epoch loop
           gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
           gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
-          generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
-          generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
+          gs = cat(gsB,gsA,dims=4)
+          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
+
+          # generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
+          # generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
 
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
