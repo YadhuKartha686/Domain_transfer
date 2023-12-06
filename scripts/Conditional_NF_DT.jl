@@ -50,7 +50,7 @@ ny=512
 N=nx*ny
 train_x1 = zeros(Float32, nx, ny, 1,1)
   
-for i=1:1
+for i=1:8
     sigma = 1.0
     train_x1[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
