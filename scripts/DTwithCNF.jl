@@ -60,9 +60,9 @@ n_batches = cld(n_train,batch_size)
 
 # Define the generator and discriminator networks
 
-n_epochs     = 20000
+n_epochs     = 50000
 device = gpu
-lr     = 4f-3
+lr     = 1f-3
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -188,7 +188,7 @@ function Dissloss(real_output, fake_output)
   return (real_loss + fake_loss)
 end
 
-Genloss(fake_output) = mean(Flux.binarycrossentropy.(fake_output, 1f0))
+Genloss(fake_output,x,y) = mean(Flux.binarycrossentropy.(fake_output, 1f0)) + Flux.mse(y|> device,x)
 
 
 # Initialize networks and optimizers
@@ -202,16 +202,15 @@ discriminatorB = gpu(model)
 
 opt_adam = "adam"
 optimizer_g = Flux.ADAM(lr)
-optimizer_da = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
-optimizer_db = Flux.Optimiser(ExpDecay(lr, lr_rate, n_batches*lr_step, 1f-6), ClipNorm(clipnorm_val), ADAM(lr))
+optimizer_da = Flux.ADAM(lr)
+optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 
 XA = train_xA[:,:,:,1:1]
 XB = train_xB[:,:,:,1:1]
 Z_fix =  randn(Float32,2048,512,1,2)
-YA = randn(Float32,size(XA))
-YB = randn(Float32,size(XB))
+y = randn(Float32,size(XA))
 
 lossnrm      = []; logdet_train = []; 
 factor = 1f-20
@@ -222,11 +221,13 @@ for e=1:n_epochs# epoch loop
   epoch_loss_gen=0.0
     @time begin
 
-          ############# Loading domain A data ##############    
+          ############# Loading domain A data ##############   
+          YA = repeat(y |>cpu, 1, 1, 1, batch_size) |> device
+          YB = repeat(y |>cpu, 1, 1, 1, batch_size) |> device 
 
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -241,9 +242,6 @@ for e=1:n_epochs# epoch loop
 
           fake_imagesAfromB = fake_images[:,:,:,2:2]
           fake_imagesBfromA = fake_images[:,:,:,1:1]
-
-          # invcallA = invcall[:,:,:,2:2]
-          # invcallB = invcall[:,:,:,1:1]
 
           ####### discrim training ########
 
@@ -264,8 +262,8 @@ for e=1:n_epochs# epoch loop
 
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
           gs = cat(gsB,gsA,dims=4)
           generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
