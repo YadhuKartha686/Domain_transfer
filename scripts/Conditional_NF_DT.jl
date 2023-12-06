@@ -48,7 +48,7 @@ train_y = jldopen(data_path, "r")["Y"]
 nx=2048
 ny=512
 N=nx*ny
-train_x1 = zeros(Float32, nx, ny, 1,1)
+train_x1 = zeros(Float32, nx, ny, 1,8)
   
 for i=1:8
     sigma = 1.0
