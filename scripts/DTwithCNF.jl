@@ -181,16 +181,6 @@ model = Chain(
 
 
 
-# Define the loss functions
-function Dissloss(real_output, fake_output)
-  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
-  fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
-  return (real_loss + fake_loss)
-end
-
-Genloss(fake_output,x,y) = mean(Flux.binarycrossentropy.(fake_output, 1f0)) + Flux.mse(y|> device,x)
-
-
 # Initialize networks and optimizers
 generator = G |> gpu
 discriminatorA = gpu(model)
@@ -220,7 +210,7 @@ for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
     @time begin
-
+          
           ############# Loading domain A data ##############   
           YA = repeat(y |>cpu, 1, 1, 1, batch_size) |> device
           YB = repeat(y |>cpu, 1, 1, 1, batch_size) |> device 
@@ -284,8 +274,8 @@ for e=1:n_epochs# epoch loop
 
           lossAd = Dissloss(real_outputA, fake_outputA)  #### log(D(real)) + log(1 - D(fake)) ####
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
-          lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
-          lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
+          lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) ####
+          lossB = Genloss(fake_outputB,fake_imagesBfromA,fake_imagesBfromA)  #### log(1 - D(fake)) ####
           f_all = 0
           for i in 1:2
             X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
