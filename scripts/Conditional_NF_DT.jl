@@ -37,7 +37,7 @@ end
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
 lr     = 4f-3
 epochs = 30
-batch_size = 1
+batch_size = 8
 
 # Load in training data
 data_path= "../data/CompassShot.jld2"
@@ -67,7 +67,7 @@ opt = Flux.ADAM(lr)
 
 factor = 1f-20
 
-x_gt = train_x1[:,:,:,1:1]
+x_gt = train_x1[:,:,:,1:batch_size]
 Z_fix =  randn(Float32,size(x_gt))
 y = randn(Float32,size(x_gt))
 
