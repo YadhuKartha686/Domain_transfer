@@ -226,7 +226,7 @@ for e=1:n_epochs# epoch loop
 
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -290,7 +290,8 @@ for e=1:n_epochs# epoch loop
           lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
           f_all = 0
           for i in 1:2
-            X_gen_cpu = fake_images|>cpu
+            X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
+
             g = (X_gen_cpu[:,:,1,i] .- X)  
             f = norm(g)^2
             # gs[:,:,:,i] =  g
