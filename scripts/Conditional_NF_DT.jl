@@ -72,7 +72,7 @@ Z_fix =  randn(Float32,size(x_gt))
 y = randn(Float32,size(x_gt))
 
 loss      = []; logdet_train = []; 
-n_epochs = 25000
+n_epochs = 30000
 #pretrain to output water. 
 for e=1:n_epochs # epoch loop
 	Y_train_latent_repeat = repeat(y |>cpu, 1, 1, 1, 1) |> device
