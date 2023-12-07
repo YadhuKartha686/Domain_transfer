@@ -35,7 +35,7 @@ end
 
 # Training hyperparameters
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 4f-3
+lr     = 8f-3
 epochs = 30
 batch_size = 8
 

@@ -62,7 +62,7 @@ n_batches = cld(n_train,batch_size)
 
 n_epochs     = 50000
 device = gpu
-lr     = 1f-3
+lr     = 5f-4
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -228,7 +228,7 @@ for e=1:n_epochs# epoch loop
 
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
