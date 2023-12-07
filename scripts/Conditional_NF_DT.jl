@@ -75,7 +75,7 @@ loss      = []; logdet_train = [];
 n_epochs = 25000
 #pretrain to output water. 
 for e=1:n_epochs # epoch loop
-	Y_train_latent_repeat = repeat(y |>cpu, 1, 1, 1, batch_size) |> device
+	Y_train_latent_repeat = repeat(y |>cpu, 1, 1, 1, 1) |> device
 	_, Zy_fixed_train, lgdet = G.forward(Z_fix|>device, Y_train_latent_repeat); #needs to set the proper sizes here
 
 	X_gen, Y_gen  = G.inverse(Z_fix|>device,Zy_fixed_train);
