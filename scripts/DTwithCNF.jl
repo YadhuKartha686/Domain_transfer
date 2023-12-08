@@ -62,7 +62,7 @@ n_batches = cld(n_train,batch_size)
 
 n_epochs     = 50000
 device = gpu
-lr     = 5f-4
+lr     = 5f-3
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
@@ -228,7 +228,7 @@ for e=1:n_epochs# epoch loop
 
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -285,8 +285,8 @@ for e=1:n_epochs# epoch loop
 
           lossAd = Dissloss(real_outputA, fake_outputA)  #### log(D(real)) + log(1 - D(fake)) ####
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
-          lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) ####
-          lossB = Genloss(fake_outputB,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) ####
+          lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
+          lossB = Genloss(fake_outputB,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
           f_all = 0
           for i in 1:2
             X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
