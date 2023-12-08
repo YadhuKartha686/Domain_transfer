@@ -20,40 +20,25 @@ using Images
 using MLDatasets
 plot_path = "."
 
-function normalize_images(data)
-    height, width, channels , num_images= size(data)
-    
-    for i in 1:num_images
-        min_vals = minimum(data[:, :, :, i])
-        max_vals = maximum(data[:, :, :, i])
-        data[:, :, :, i] .= (data[:, :, :, i] .- min_vals) ./ (max_vals .- min_vals)
-		data[:, :, :, i] .= (data[:, :, :, i] .*2) .-1
-    end
-    
-    return data
-end
+using InvertibleNetworks, Flux
+using PyPlot
+using LinearAlgebra, Random
+using MLDatasets
+
+plot_path = "."
 
 # Training hyperparameters
-device = gpu #GPU does not accelerate at this small size. quicker on cpu
+device = cpu #GPU does not accelerate at this small size. quicker on cpu
 lr     = 4f-3
 epochs = 30
 batch_size = 1
 
 # Load in training data
-data_path= "../data/CompassShot.jld2"
-# datadir(CompassShot.jld2)
-train_X = jldopen(data_path, "r")["X"]
-train_y = jldopen(data_path, "r")["Y"]
-  
-nx=2048
-ny=512
-N=nx*ny
-train_x1 = zeros(Float32, nx, ny, 1,1)
-  
-for i=1:1
-    sigma = 1.0
-    train_x1[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
-end
+n_total = 10
+X, train_y = MNIST(split=:train)[1:n_total];
+X, train_y = MNIST.traindata#[1:n_total]
+train_x, _ = MNIST.traindata()
+X = train_x[:,:,1:n_total]
 
 # train_x1 = normalize_images(train_x1)
 
