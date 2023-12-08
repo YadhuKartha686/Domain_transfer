@@ -189,8 +189,8 @@ function Dissloss(real_output, fake_output)
   return (real_loss + fake_loss)
 end
 
-function Genloss(fake_output,x,y,Z) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 5*Flux.mse(y|> device,x) + norm(Z)^2/(N*8)
+function Genloss(fake_output,x,y) 
+  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 5*Flux.mse(y|> device,x)
 end
 
 
@@ -219,7 +219,7 @@ YA = randn(Float32,size(XA))
 YB = randn(Float32,size(XB))
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-20
+factor = 1f-10
 
 n_epochs     = 500
 for e=1:n_epochs# epoch loop
@@ -267,11 +267,11 @@ for e=1:n_epochs# epoch loop
 
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA,ZxA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB,ZxB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
           gs = cat(gsB,gsA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward_inv(((gs ./ factor)|>device)+(Zx/4), fake_images, invcall;) #### updating grads wrt image ####
 
           # generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcall[:,:,:,2:2];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcall[:,:,:,1:1];) #### updating grads wrt B ####
@@ -291,15 +291,15 @@ for e=1:n_epochs# epoch loop
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
           lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
           lossB = Genloss(fake_outputB,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
-          f_all = 0
-          for i in 1:8
-            X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
+          f_all = norm(Zx)^2
+          # for i in 1:8
+          #   X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
 
-            g = (X_gen_cpu[:,:,1,i] .- X)  
-            f = norm(g)^2
-            # gs[:,:,:,i] =  g
-            f_all += f
-          end
+          #   g = (X_gen_cpu[:,:,1,i] .- X)  
+          #   f = norm(g)^2
+          #   # gs[:,:,:,i] =  g
+          #   f_all += f
+          # end
           loss = lossA + lossB #+ ml
 
           append!(lossnrm, f_all / (8*N))  # normalize by image size and batch size
@@ -312,7 +312,7 @@ for e=1:n_epochs# epoch loop
           epoch_loss_gen += loss
 
           println("Iter: epoch=", e, "/", n_epochs,
-            "; genloss = ",  loss, 
+            "; genloss = ",  loss+f_all, 
               "; dissloss = ", (lossAd+lossBd)/2 , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
