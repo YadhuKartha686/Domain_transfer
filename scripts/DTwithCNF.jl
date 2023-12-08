@@ -62,7 +62,7 @@ n_batches = cld(n_train,batch_size)
 
 n_epochs     = 50000
 device = gpu
-lr     = 5f-3
+lr     = 1f-3
 lr_step   = 10
 lr_rate = 0.75f0
 clipnorm_val = 10f0
