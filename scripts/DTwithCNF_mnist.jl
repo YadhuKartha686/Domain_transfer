@@ -266,3 +266,57 @@ for e=1:n_epochs# epoch loop
 end
 
 print("done training!!!")
+
+
+##### testing ##########
+imgs = 8
+XA = zeros(Float32 , 16,16,1,imgs)
+XB = zeros(Float32 , 16,16,1,imgs)
+XA[:,:,:,1:imgs] = train_xA[:,:,:,1000:imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,1000:imgs]
+Z_fix =  randn(Float32,16,16,1,imgs*2)
+YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
+YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
+
+X = cat(XA, XB,dims=4)
+Y = cat(YA, YB,dims=4)
+Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+
+
+          ######## interchanging conditions to get domain transferred images during inverse call #########
+
+ZyA = Zy[:,:,:,1:imgs]
+ZyB = Zy[:,:,:,imgs+1:end]
+
+Zy = cat(ZyB,ZyA,dims=4)
+
+fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+
+          ####### getting fake images from respective domain ########
+
+fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
+fake_imagesBfromA = fake_images[:,:,:,1:imgs]
+
+
+imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+plt.title("data test ")
+plt.savefig("../plots/Shot_rec_df/number zero test.png")
+plt.colorbar()
+plt.close()
+
+imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+plt.title("data test")
+plt.savefig("../plots/Shot_rec_df/number eight test.png")
+plt.colorbar()
+plt.close()
+    
+imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+plt.title("digit pred 0 from 8 $e")
+plt.savefig("../plots/Shot_rec_df/number zero test.png")
+plt.colorbar()
+plt.close()
+
+imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+plt.title("digit pred 8 from 0 $e")
+plt.savefig("../plots/Shot_rec_df/number eight test.png")
+plt.close()
