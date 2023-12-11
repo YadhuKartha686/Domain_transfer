@@ -223,22 +223,25 @@ for e=1:n_epochs# epoch loop
 
     end
       if mod(e,100) == 0
-            imshow(XA[:,:,:,1])
+            imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
             plt.title("data $e")
             plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
+            plt.colorbar()
             plt.close()
 
-            imshow(XB[:,:,:,1])
+            imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
             plt.title("data $e")
             plt.savefig("../plots/Shot_rec_df/number eight train$e.png")
+            plt.colorbar()
             plt.close()
     
-            imshow(fake_imagesAfromB[:,:,1,1]|>cpu)
+            imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
             plt.title("digit pred 0 from 8 $e")
             plt.savefig("../plots/Shot_rec_df/number zero$e.png")
+            plt.colorbar()
             plt.close()
 
-            imshow(fake_imagesBfromA[:,:,1,1]|>cpu)
+            imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
             plt.title("digit pred 8 from 0 $e")
             plt.savefig("../plots/Shot_rec_df/number eight$e.png")
             plt.close()
