@@ -117,9 +117,6 @@ dissloss = []
 imgs = 8
 XA = zeros(Float32 , 16,16,1,imgs)
 XB = zeros(Float32 , 16,16,1,imgs)
-XA[:,:,:,1:imgs] = train_xA[:,:,:,1:imgs]
-XB[:,:,:,1:imgs] = train_xB[:,:,:,1:imgs]
-Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
 
@@ -130,8 +127,13 @@ n_epochs     = 25000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
+  idx_eA = reshape(randperm(1000), 8, 125)
+  idx_eB = reshape(randperm(1000), 8, 125)
+  for b = 1:125 # batch loop
     @time begin
-          ############# Loading domain A data ##############   
+          ############# Loading domain A data ############## 
+          XA = train_xA[:, :, :, idx_eA[:,b]];
+          XB = train_xB[:, :, :, idx_eA[:,b]];  
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
@@ -212,7 +214,7 @@ for e=1:n_epochs# epoch loop
           epoch_loss_diss += (lossAd+lossBd)/2
           epoch_loss_gen += loss
 
-          println("Iter: epoch=", e, "/", n_epochs,
+          println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
           "; Genloss=", loss, 
             "; genloss = ",  loss+(f_all / (8*N)), 
               "; dissloss = ", (lossAd+lossBd)/2 , 
@@ -220,6 +222,7 @@ for e=1:n_epochs# epoch loop
               "; lgdet = ", logdet_train[end], "\n")
 
           Base.flush(Base.stdout)
+        end
 
     end
       if mod(e,100) == 0
@@ -254,11 +257,11 @@ for e=1:n_epochs# epoch loop
             plt.title("logdet $e")
             plt.savefig("../plots/Shot_rec_df/logdet$e.png")
             plt.close()
-            plt.plot(1:e,genloss[1:e])
+            plt.plot(genloss)
             plt.title("genloss $e")
             plt.savefig("../plots/Shot_rec_df/genloss$e.png")
             plt.close()
-            plt.plot(1:e,dissloss[1:e])
+            plt.plot(dissloss)
             plt.title("dissloss $e")
             plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
             plt.close()
@@ -272,8 +275,8 @@ print("done training!!!")
 imgs = 8
 XA = zeros(Float32 , 16,16,1,imgs)
 XB = zeros(Float32 , 16,16,1,imgs)
-XA[:,:,:,1:imgs] = train_xA[:,:,:,1000:imgs]
-XB[:,:,:,1:imgs] = train_xB[:,:,:,1000:imgs]
+XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,1500:1499+imgs]
 Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
