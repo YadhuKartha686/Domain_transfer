@@ -312,11 +312,11 @@ plt.close()
     
 imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
 plt.title("digit pred 0 from 8 ")
-plt.savefig("../plots/Shot_rec_df/number zero test.png")
+plt.savefig("../plots/Shot_rec_df/number zero pred test.png")
 plt.colorbar()
 plt.close()
 
 imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
 plt.title("digit pred 8 from 0 ")
-plt.savefig("../plots/Shot_rec_df/number eight test.png")
+plt.savefig("../plots/Shot_rec_df/number eight pred test.png")
 plt.close()
