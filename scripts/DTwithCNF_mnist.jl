@@ -115,8 +115,6 @@ optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 imgs = 8
-XA = zeros(Float32 , 16,16,1,imgs)
-XB = zeros(Float32 , 16,16,1,imgs)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
 
