@@ -115,8 +115,8 @@ optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 imgs = 8
-YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
-YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
+YA = ones(Float32,16,16,1,8) + randn(Float32,16,16,1,8) ./1000
+YB = ones(Float32,16,16,1,8) .*8 + randn(Float32,16,16,1,8) ./1000
 
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
