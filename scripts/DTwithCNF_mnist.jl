@@ -123,7 +123,7 @@ YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 1000
+n_epochs     = 250
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
@@ -223,50 +223,53 @@ for e=1:n_epochs# epoch loop
 
           Base.flush(Base.stdout)
         end
-    if mod(e,100) == 0
-            imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
-            plt.title("data $e")
-            plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
-            plt.colorbar()
-            plt.close()
+        if mod(e,10) == 0 && mod(b,125)==0
+          imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+          plt.title("data $e")
+          plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
+          plt.colorbar()
+          plt.close()
 
-            imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
-            plt.title("data $e")
-            plt.savefig("../plots/Shot_rec_df/number eight train$e.png")
-            plt.colorbar()
-            plt.close()
-    
-            imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-            plt.title("digit pred 0 from 8 $e")
-            plt.savefig("../plots/Shot_rec_df/number zero$e.png")
-            plt.colorbar()
-            plt.close()
+          imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+          plt.title("data $e")
+          plt.savefig("../plots/Shot_rec_df/number eight train$e.png")
+          plt.colorbar()
+          plt.close()
+  
+          imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plt.title("digit pred 0 from 8 $e")
+          plt.savefig("../plots/Shot_rec_df/number zero$e.png")
+          plt.colorbar()
+          plt.close()
 
-            imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-            plt.title("digit pred 8 from 0 $e")
-            plt.savefig("../plots/Shot_rec_df/number eight$e.png")
-            plt.close()
+          imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plt.title("digit pred 8 from 0 $e")
+          plt.savefig("../plots/Shot_rec_df/number eight$e.png")
+          plt.close()
 
-            plt.plot(lossnrm)
-            plt.title("loss $e")
-            plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
-            plt.close()
-            plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec_df/logdet$e.png")
-            plt.close()
-            plt.plot(genloss)
-            plt.title("genloss $e")
-            plt.savefig("../plots/Shot_rec_df/genloss$e.png")
-            plt.close()
-            plt.plot(dissloss)
-            plt.title("dissloss $e")
-            plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
-            plt.close()
-      end
+          plt.plot(lossnrm)
+          plt.title("loss $e")
+          plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
+          plt.close()
+          plt.plot(logdet_train)
+          plt.title("logdet $e")
+          plt.savefig("../plots/Shot_rec_df/logdet$e.png")
+          plt.close()
+          avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
+          avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
+          push!(genloss, avg_epoch_lossg)
+          push!(dissloss, avg_epoch_lossd)
+          plt.plot(1:e,genloss[1:e])
+          plt.title("genloss $e")
+          plt.savefig("../plots/Shot_rec_df/genloss$e.png")
+          plt.close()
+          plt.plot(1:e,dissloss[1:e])
+          plt.title("dissloss $e")
+          plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
+          plt.close()
+    end
 
     end
-      
 end
 
 print("done training!!!")
@@ -357,18 +360,13 @@ ax4.title.set_text("digit pred 8 from 0 ")
 
 
 ax5 = fig.add_subplot(3,2,5)
-ax5.imshow(XA[:,:,:,3],vmin = 0,vmax = 1)
+ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
 ax5.title.set_text("data test ")
 
 
 ax6 = fig.add_subplot(3,2,6)
-ax6.imshow(fake_imagesBfromA[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
+ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
 ax6.title.set_text("digit pred 8 from 0 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number eight test.png")
-
-
-
-    
-
