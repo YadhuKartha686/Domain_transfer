@@ -123,7 +123,7 @@ YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 15000
+n_epochs     = 1000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
@@ -223,9 +223,7 @@ for e=1:n_epochs# epoch loop
 
           Base.flush(Base.stdout)
         end
-
-    end
-      if mod(e,100) == 0
+    if mod(e,100) == 0
             imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
             plt.title("data $e")
             plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
@@ -266,6 +264,9 @@ for e=1:n_epochs# epoch loop
             plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
             plt.close()
       end
+
+    end
+      
 end
 
 print("done training!!!")
