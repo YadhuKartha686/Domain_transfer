@@ -116,8 +116,8 @@ optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 imgs = 8
-YA = ones(Float32,16,16,1,8) + randn(Float32,16,16,1,8) ./1000
-YB = ones(Float32,16,16,1,8) .*8 + randn(Float32,16,16,1,8) ./1000
+YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
+YB = ones(Float32,16,16,1,imgs) .*8 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
@@ -126,12 +126,12 @@ n_epochs     = 250
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
-  idx_eA = reshape(randperm(1000), 8, 125)
-  idx_eB = reshape(randperm(1000), 8, 125)
+  idx_eA = reshape(randperm(1000), imgs, 125)
+  idx_eB = reshape(randperm(1000), imgs, 125)
   for b = 1:125 # batch loop
         @time begin
           ############# Loading domain A data ############## 
-          idx = reshape(randperm(16), 16, 1)
+          idx = reshape(randperm(imgs*2), imgs*2, 1)
           inverse_idx = zeros(Int,length(idx))
           for i in 1:length(idx)
               inverse_idx[idx[i]] = i
@@ -216,7 +216,7 @@ for e=1:n_epochs# epoch loop
 
           loss = lossA + lossB #+ ml
 
-          append!(lossnrm, f_all / (8*N))  # normalize by image size and batch size
+          append!(lossnrm, f_all / (imgs*2*N))  # normalize by image size and batch size
           append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
           append!(genloss, loss)  # normalize by image size and batch size
           append!(dissloss, (lossAd+lossBd)/2 ) # logdet is internally normalized by batch size
@@ -284,6 +284,100 @@ for e=1:n_epochs# epoch loop
         end
 
     end
+    imgs = 8
+    XA = zeros(Float32 , 16,16,1,imgs)
+    XB = zeros(Float32 , 16,16,1,imgs)
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,1500:1499+imgs]
+    Z_fix =  randn(Float32,16,16,1,imgs*2)
+    YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
+    YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
+
+    X = cat(XA, XB,dims=4)
+    Y = cat(YA, YB,dims=4)
+    Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+
+
+              ######## interchanging conditions to get domain transferred images during inverse call #########
+
+    ZyA = Zy[:,:,:,1:imgs]
+    ZyB = Zy[:,:,:,imgs+1:end]
+
+    Zy = cat(ZyB,ZyA,dims=4)
+
+    fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+
+              ####### getting fake images from respective domain ########
+
+    fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
+    fake_imagesBfromA = fake_images[:,:,:,1:imgs]
+
+    fig = plt.figure(figsize=(15, 15))
+    ax1 = fig.add_subplot(3,2,1)
+    ax1.imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+    ax1.title.set_text("data test ")
+
+
+    ax2 = fig.add_subplot(3,2,2)
+    ax2.imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.title.set_text("digit pred 0 from 8 ")
+
+
+    ax3 = fig.add_subplot(3,2,3)
+    ax3.imshow(XB[:,:,:,2],vmin = 0,vmax = 1)
+    ax3.title.set_text("data test ")
+
+
+    ax4 = fig.add_subplot(3,2,4)
+    ax4.imshow(fake_imagesAfromB[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.title.set_text("digit pred 0 from 8 ")
+
+
+
+    ax5 = fig.add_subplot(3,2,5)
+    ax5.imshow(XB[:,:,:,3],vmin = 0,vmax = 1)
+    ax5.title.set_text("data test ")
+
+
+    ax6 = fig.add_subplot(3,2,6)
+    ax6.imshow(fake_imagesAfromB[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
+    ax6.title.set_text("digit pred 0 from 8 ")
+
+
+    fig.savefig("../plots/Shot_rec_df/number zero test.png")
+
+
+    fig = plt.figure(figsize=(15, 15))
+    ax1 = fig.add_subplot(3,2,1)
+    ax1.imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+    ax1.title.set_text("data test ")
+
+
+    ax2 = fig.add_subplot(3,2,2)
+    ax2.imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.title.set_text("digit pred 8 from 0 ")
+
+    ax3 = fig.add_subplot(3,2,3)
+    ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
+    ax3.title.set_text("data test ")
+
+
+    ax4 = fig.add_subplot(3,2,4)
+    ax4.imshow(fake_imagesBfromA[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.title.set_text("digit pred 8 from 0 ")
+
+
+    ax5 = fig.add_subplot(3,2,5)
+    ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
+    ax5.title.set_text("data test ")
+
+
+    ax6 = fig.add_subplot(3,2,6)
+    ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
+    ax6.title.set_text("digit pred 8 from 0 ")
+
+
+    fig.savefig("../plots/Shot_rec_df/number eight test.png")
 end
 
 print("done training!!!")
