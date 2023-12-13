@@ -344,7 +344,7 @@ for e=1:n_epochs# epoch loop
     ax6.title.set_text("digit pred 0 from 8 ")
 
 
-    fig.savefig("../plots/Shot_rec_df/number zero test.png")
+    fig.savefig("../plots/Shot_rec_df/number zero test $e.png")
 
 
     fig = plt.figure(figsize=(15, 15))
@@ -377,7 +377,7 @@ for e=1:n_epochs# epoch loop
     ax6.title.set_text("digit pred 8 from 0 ")
 
 
-    fig.savefig("../plots/Shot_rec_df/number eight test.png")
+    fig.savefig("../plots/Shot_rec_df/number eight test $e.png")
 end
 
 print("done training!!!")
