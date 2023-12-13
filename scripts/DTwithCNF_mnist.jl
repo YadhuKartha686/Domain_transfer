@@ -128,7 +128,7 @@ for e=1:n_epochs# epoch loop
   idx_eA = reshape(randperm(1000), 8, 125)
   idx_eB = reshape(randperm(1000), 8, 125)
   for b = 1:125 # batch loop
-    @time begin
+        @time begin
           ############# Loading domain A data ############## 
           idx = reshape(randperm(16), 16, 1)
           inverse_idx = zeros(Int,length(idx))
@@ -231,8 +231,15 @@ for e=1:n_epochs# epoch loop
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
 
-          Base.flush(Base.stdout)
         end
+        Base.flush(Base.stdout)
+        if mod(e,1)==0 && mod(b,125)==0
+          avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
+          avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
+          push!(genloss, avg_epoch_lossg)
+          push!(dissloss, avg_epoch_lossd)
+        end
+
         if mod(e,10) == 0 && mod(b,125)==0
           imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
           plt.title("data $e")
@@ -265,10 +272,6 @@ for e=1:n_epochs# epoch loop
           plt.title("logdet $e")
           plt.savefig("../plots/Shot_rec_df/logdet$e.png")
           plt.close()
-          avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
-          avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
-          push!(genloss, avg_epoch_lossg)
-          push!(dissloss, avg_epoch_lossd)
           plt.plot(1:e,genloss[1:e])
           plt.title("genloss $e")
           plt.savefig("../plots/Shot_rec_df/genloss$e.png")
@@ -277,7 +280,7 @@ for e=1:n_epochs# epoch loop
           plt.title("dissloss $e")
           plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
           plt.close()
-    end
+        end
 
     end
 end
