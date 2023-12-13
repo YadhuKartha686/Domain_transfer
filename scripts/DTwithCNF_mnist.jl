@@ -52,13 +52,8 @@ for i=1:5851
   # train_xB[:,:,:,i] = train_x[:,:,inds[i]] 
 end
 
-batch_size = 1
 nx,ny = 16, 16
 N = nx*ny;
-
-n_train = 752
-
-n_batches = cld(n_train,batch_size)
 
 
 # Define the generator and discriminator networks
@@ -115,7 +110,9 @@ optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
-imgs = 8
+imgs = 16
+n_train = 2500
+n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*8 + randn(Float32,16,16,1,imgs) ./1000
 
@@ -126,9 +123,9 @@ n_epochs     = 250
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
-  idx_eA = reshape(randperm(1000), imgs, 125)
-  idx_eB = reshape(randperm(1000), imgs, 125)
-  for b = 1:125 # batch loop
+  idx_eA = reshape(randperm(n_train), imgs, n_batches)
+  idx_eB = reshape(randperm(n_train), imgs, n_batches)
+  for b = 1:n_batches # batch loop
         @time begin
           ############# Loading domain A data ############## 
           idx = reshape(randperm(imgs*2), imgs*2, 1)
@@ -235,14 +232,14 @@ for e=1:n_epochs# epoch loop
           Base.flush(Base.stdout)
         end
         
-        if mod(e,1)==0 && mod(b,125)==0
+        if mod(e,1)==0 && mod(b,n_batches)==0
           avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
           avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
           push!(genloss, avg_epoch_lossg)
           push!(dissloss, avg_epoch_lossd)
         end
 
-        if mod(e,10) == 0 && mod(b,125)==0
+        if mod(e,10) == 0 && mod(b,n_batches)==0
           imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
           plt.title("data $e")
           plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
@@ -287,8 +284,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , 16,16,1,imgs)
     XB = zeros(Float32 , 16,16,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,1500:1499+imgs]
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,2500:2499+imgs]
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,2500:2499+imgs]
     Z_fix =  randn(Float32,16,16,1,imgs*2)
 
     X = cat(XA, XB,dims=4)
@@ -382,11 +379,10 @@ print("done training!!!")
 
 
 ##### testing ##########
-imgs = 8
 XA = zeros(Float32 , 16,16,1,imgs)
 XB = zeros(Float32 , 16,16,1,imgs)
-XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
-XB[:,:,:,1:imgs] = train_xB[:,:,:,1500:1499+imgs]
+XA[:,:,:,1:imgs] = train_xA[:,:,:,2500:2499+imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,2500:2499+imgs]
 Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
@@ -476,3 +472,6 @@ ax6.title.set_text("digit pred 8 from 0 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number eight test.png")
+
+
+# include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
