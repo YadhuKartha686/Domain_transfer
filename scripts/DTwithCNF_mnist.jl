@@ -110,8 +110,8 @@ optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
-imgs = 16
-n_train = 2500
+imgs = 8
+n_train = 2512
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*8 + randn(Float32,16,16,1,imgs) ./1000
@@ -284,8 +284,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , 16,16,1,imgs)
     XB = zeros(Float32 , 16,16,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,2500:2499+imgs]
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,2500:2499+imgs]
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_train:n_train-1+imgs]
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_train:n_train-1+imgs]
     Z_fix =  randn(Float32,16,16,1,imgs*2)
 
     X = cat(XA, XB,dims=4)
@@ -381,8 +381,8 @@ print("done training!!!")
 ##### testing ##########
 XA = zeros(Float32 , 16,16,1,imgs)
 XB = zeros(Float32 , 16,16,1,imgs)
-XA[:,:,:,1:imgs] = train_xA[:,:,:,2500:2499+imgs]
-XB[:,:,:,1:imgs] = train_xB[:,:,:,2500:2499+imgs]
+XA[:,:,:,1:imgs] = train_xA[:,:,:,n_train:n_train-1+imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,n_train:n_train-1+imgs]
 Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
