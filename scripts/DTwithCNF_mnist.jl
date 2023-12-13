@@ -130,12 +130,20 @@ for e=1:n_epochs# epoch loop
   for b = 1:125 # batch loop
     @time begin
           ############# Loading domain A data ############## 
+          idx = reshape(randperm(16), 16, 1)
+          inverse_idx = zeros(Int,length(idx))
+          for i in 1:length(idx)
+              inverse_idx[idx[i]] = i
+          end
           XA = train_xA[:, :, :, idx_eA[:,b]];
           XB = train_xB[:, :, :, idx_eA[:,b]];  
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
+          X=X[:,:,:,idx[:]]
+          Y=Y[:,:,:,idx[:]]
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
-
+          Zx = Zx[:,:,:,inverse_idx[:]]
+          Zy = Zy[:,:,:,inverse_idx[:]]
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -147,8 +155,12 @@ for e=1:n_epochs# epoch loop
 
           Zy = cat(ZyB,ZyA,dims=4)
 
-          fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+          Zx=Zx[:,:,:,idx[:]]
+          Zy=Zy[:,:,:,idx[:]]
 
+          fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+          fake_images = fake_images[:,:,:,inverse_idx[:]]
+          invcall = invcall[:,:,:,inverse_idx[:]]
           ####### getting fake images from respective domain ########
 
           fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
