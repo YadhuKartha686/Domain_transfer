@@ -284,7 +284,6 @@ for e=1:n_epochs# epoch loop
         end
 
     end
-    imgs = 8
     XA = zeros(Float32 , 16,16,1,imgs)
     XB = zeros(Float32 , 16,16,1,imgs)
     XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
