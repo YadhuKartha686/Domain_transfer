@@ -232,8 +232,9 @@ for e=1:n_epochs# epoch loop
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
 
+          Base.flush(Base.stdout)
         end
-        Base.flush(Base.stdout)
+        
         if mod(e,1)==0 && mod(b,125)==0
           avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
           avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
@@ -289,8 +290,6 @@ for e=1:n_epochs# epoch loop
     XA[:,:,:,1:imgs] = train_xA[:,:,:,1500:1499+imgs]
     XB[:,:,:,1:imgs] = train_xB[:,:,:,1500:1499+imgs]
     Z_fix =  randn(Float32,16,16,1,imgs*2)
-    YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
-    YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
 
     X = cat(XA, XB,dims=4)
     Y = cat(YA, YB,dims=4)
