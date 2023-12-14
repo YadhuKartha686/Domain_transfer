@@ -340,6 +340,7 @@ for e=1:n_epochs# epoch loop
 
 
     fig.savefig("../plots/Shot_rec_df/number zero test $e.png")
+    plt.close(fig)
 
 
     fig = plt.figure(figsize=(15, 15))
@@ -373,6 +374,7 @@ for e=1:n_epochs# epoch loop
 
 
     fig.savefig("../plots/Shot_rec_df/number eight test $e.png")
+    plt.close(fig)
 end
 
 print("done training!!!")
@@ -439,6 +441,7 @@ ax6.title.set_text("digit pred 0 from 8 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number zero test.png")
+fig.cla()
 
 
 fig = plt.figure(figsize=(15, 15))
@@ -472,6 +475,7 @@ ax6.title.set_text("digit pred 8 from 0 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number eight test.png")
+fig.cla()
 
 
 # include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
