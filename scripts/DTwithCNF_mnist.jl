@@ -112,6 +112,7 @@ genloss=[]
 dissloss = []
 imgs = 16
 n_train = 2512
+n_test = 3000
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*8 + randn(Float32,16,16,1,imgs) ./1000
@@ -284,9 +285,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , 16,16,1,imgs)
     XB = zeros(Float32 , 16,16,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_train:n_train-1+imgs]
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_train:n_train-1+imgs]
-    Z_fix =  randn(Float32,16,16,1,imgs*2)
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
 
     X = cat(XA, XB,dims=4)
     Y = cat(YA, YB,dims=4)
@@ -304,8 +304,8 @@ for e=1:n_epochs# epoch loop
 
               ####### getting fake images from respective domain ########
 
-    fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
-    fake_imagesBfromA = fake_images[:,:,:,1:imgs]
+    fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
+    fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
 
     fig = plt.figure(figsize=(15, 15))
     ax1 = fig.add_subplot(3,2,1)
@@ -314,7 +314,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax2 = fig.add_subplot(3,2,2)
-    ax2.imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.imshow(fake_imagesAfromBt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
     ax2.title.set_text("digit pred 0 from 8 ")
 
 
@@ -324,7 +324,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax4 = fig.add_subplot(3,2,4)
-    ax4.imshow(fake_imagesAfromB[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.imshow(fake_imagesAfromBt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
     ax4.title.set_text("digit pred 0 from 8 ")
 
 
@@ -335,7 +335,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax6 = fig.add_subplot(3,2,6)
-    ax6.imshow(fake_imagesAfromB[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
+    ax6.imshow(fake_imagesAfromBt[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
     ax6.title.set_text("digit pred 0 from 8 ")
 
 
@@ -350,7 +350,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax2 = fig.add_subplot(3,2,2)
-    ax2.imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.imshow(fake_imagesBfromAt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
     ax2.title.set_text("digit pred 8 from 0 ")
 
     ax3 = fig.add_subplot(3,2,3)
@@ -359,7 +359,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax4 = fig.add_subplot(3,2,4)
-    ax4.imshow(fake_imagesBfromA[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.imshow(fake_imagesBfromAt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
     ax4.title.set_text("digit pred 8 from 0 ")
 
 
@@ -369,7 +369,7 @@ for e=1:n_epochs# epoch loop
 
 
     ax6 = fig.add_subplot(3,2,6)
-    ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
+    ax6.imshow(fake_imagesBfromAt[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
     ax6.title.set_text("digit pred 8 from 0 ")
 
 
@@ -384,8 +384,8 @@ print("done training!!!")
 ##### testing ##########
 XA = zeros(Float32 , 16,16,1,imgs)
 XB = zeros(Float32 , 16,16,1,imgs)
-XA[:,:,:,1:imgs] = train_xA[:,:,:,n_train:n_train-1+imgs]
-XB[:,:,:,1:imgs] = train_xB[:,:,:,n_train:n_train-1+imgs]
+XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
 Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
 YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
