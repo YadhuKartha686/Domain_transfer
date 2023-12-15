@@ -60,7 +60,7 @@ N = nx*ny;
 
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-6
+lr     = 5f-6
 epochs = 30
 batch_size = 1
 low = 0.5f0
@@ -442,7 +442,7 @@ ax6.title.set_text("digit pred 0 from 8 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number zero test.png")
-fig.cla()
+plt.close(fig)
 
 
 fig = plt.figure(figsize=(15, 15))
@@ -476,7 +476,7 @@ ax6.title.set_text("digit pred 8 from 0 ")
 
 
 fig.savefig("../plots/Shot_rec_df/number eight test.png")
-fig.cla()
+plt.close(fig)
 
 
 # include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
