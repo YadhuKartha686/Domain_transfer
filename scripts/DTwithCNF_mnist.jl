@@ -60,7 +60,7 @@ N = nx*ny;
 
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 5f-6
+lr     = 1f-6
 epochs = 30
 batch_size = 1
 low = 0.5f0
@@ -104,7 +104,7 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-clipnorm_val = 10f0
+clipnorm_val = 5f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
