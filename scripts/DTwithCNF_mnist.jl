@@ -9,6 +9,7 @@ using JLD2
 using Statistics
 using ImageQualityIndexes 
 using PyPlot
+using ImageTransformations
 using SlimPlotting
 using InvertibleNetworks
 using MLUtils
@@ -19,10 +20,6 @@ using Distributions
 using Images
 
 #### DATA LOADING #####
-
-using InvertibleNetworks, Flux
-using PyPlot
-using LinearAlgebra, Random
 using MLDatasets
 
 plot_path = "."
@@ -30,8 +27,8 @@ plot_path = "."
 
 
 # Load in training data
-range_digA = [0]
-range_digB = [8]
+range_digA = [1]
+range_digB = [7]
 # load in training data
 train_x, train_y = MNIST.traindata()
 
@@ -40,7 +37,8 @@ inds = findall(x -> x in range_digA, train_y)
 train_yA = train_y[inds]
 train_xA = zeros(Float32,16,16,1,5923)
 for i=1:5923
-  train_xA[:,:,:,i] = imresize(train_x[:,:,inds[i]],(16,16))  
+  train_xA[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
+  train_xA[:,:,1,i] = rotr90(train_xA[:,:,1,i],1)
   # train_xA[:,:,:,i] = train_x[:,:,inds[i]]
 end
 
@@ -48,7 +46,9 @@ inds = findall(x -> x in range_digB, train_y)
 train_yB = train_y[inds]
 train_xB = zeros(Float32,16,16,1,5851)
 for i=1:5851
-  train_xB[:,:,:,i] = imresize(train_x[:,:,inds[i]],(16,16)) 
+
+  train_xB[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
+  train_xB[:,:,1,i] = rotr90(train_xB[:,:,1,i],1)
   # train_xB[:,:,:,i] = train_x[:,:,inds[i]] 
 end
 
@@ -66,7 +66,7 @@ batch_size = 1
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 4; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 3; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
@@ -115,7 +115,7 @@ n_train = 2512
 n_test = 3500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
-YB = ones(Float32,16,16,1,imgs) .*8 + randn(Float32,16,16,1,imgs) ./1000
+YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
@@ -243,25 +243,25 @@ for e=1:n_epochs# epoch loop
         if mod(e,10) == 0 && mod(b,n_batches)==0
           imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
           plt.title("data $e")
-          plt.savefig("../plots/Shot_rec_df/number zero train$e.png")
+          plt.savefig("../plots/Shot_rec_df/number one train$e.png")
           plt.colorbar()
           plt.close()
 
           imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
           plt.title("data $e")
-          plt.savefig("../plots/Shot_rec_df/number eight train$e.png")
+          plt.savefig("../plots/Shot_rec_df/number seven train$e.png")
           plt.colorbar()
           plt.close()
   
           imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
           plt.title("digit pred 0 from 8 $e")
-          plt.savefig("../plots/Shot_rec_df/number zero$e.png")
+          plt.savefig("../plots/Shot_rec_df/number one$e.png")
           plt.colorbar()
           plt.close()
 
           imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
           plt.title("digit pred 8 from 0 $e")
-          plt.savefig("../plots/Shot_rec_df/number eight$e.png")
+          plt.savefig("../plots/Shot_rec_df/number seven$e.png")
           plt.close()
 
           plt.plot(lossnrm)
@@ -315,7 +315,7 @@ for e=1:n_epochs# epoch loop
 
     ax2 = fig.add_subplot(3,2,2)
     ax2.imshow(fake_imagesAfromBt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-    ax2.title.set_text("digit pred 0 from 8 ")
+    ax2.title.set_text("digit pred 1 from 7 ")
 
 
     ax3 = fig.add_subplot(3,2,3)
@@ -325,7 +325,7 @@ for e=1:n_epochs# epoch loop
 
     ax4 = fig.add_subplot(3,2,4)
     ax4.imshow(fake_imagesAfromBt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-    ax4.title.set_text("digit pred 0 from 8 ")
+    ax4.title.set_text("digit pred 1 from 7 ")
 
 
 
@@ -336,10 +336,10 @@ for e=1:n_epochs# epoch loop
 
     ax6 = fig.add_subplot(3,2,6)
     ax6.imshow(fake_imagesAfromBt[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
-    ax6.title.set_text("digit pred 0 from 8 ")
+    ax6.title.set_text("digit pred 1 from 7 ")
 
 
-    fig.savefig("../plots/Shot_rec_df/number zero test $e.png")
+    fig.savefig("../plots/Shot_rec_df/number one test $e.png")
     plt.close(fig)
 
 
@@ -351,7 +351,7 @@ for e=1:n_epochs# epoch loop
 
     ax2 = fig.add_subplot(3,2,2)
     ax2.imshow(fake_imagesBfromAt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-    ax2.title.set_text("digit pred 8 from 0 ")
+    ax2.title.set_text("digit pred 7 from 1 ")
 
     ax3 = fig.add_subplot(3,2,3)
     ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
@@ -360,7 +360,7 @@ for e=1:n_epochs# epoch loop
 
     ax4 = fig.add_subplot(3,2,4)
     ax4.imshow(fake_imagesBfromAt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-    ax4.title.set_text("digit pred 8 from 0 ")
+    ax4.title.set_text("digit pred 7 from 1 ")
 
 
     ax5 = fig.add_subplot(3,2,5)
@@ -370,10 +370,10 @@ for e=1:n_epochs# epoch loop
 
     ax6 = fig.add_subplot(3,2,6)
     ax6.imshow(fake_imagesBfromAt[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
-    ax6.title.set_text("digit pred 8 from 0 ")
+    ax6.title.set_text("digit pred 7 from 1 ")
 
 
-    fig.savefig("../plots/Shot_rec_df/number eight test $e.png")
+    fig.savefig("../plots/Shot_rec_df/number seven test $e.png")
     plt.close(fig)
 end
 
@@ -388,7 +388,7 @@ XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
 XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
 Z_fix =  randn(Float32,16,16,1,imgs*2)
 YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
-YB = ones(Float32,size(XB)) .*8 + randn(Float32,size(XB)) ./1000
+YB = ones(Float32,size(XB)) .*7 + randn(Float32,size(XB)) ./1000
 
 X = cat(XA, XB,dims=4)
 Y = cat(YA, YB,dims=4)
@@ -417,7 +417,7 @@ ax1.title.set_text("data test ")
 
 ax2 = fig.add_subplot(3,2,2)
 ax2.imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-ax2.title.set_text("digit pred 0 from 8 ")
+ax2.title.set_text("digit pred 1 from 7 ")
 
 
 ax3 = fig.add_subplot(3,2,3)
@@ -427,7 +427,7 @@ ax3.title.set_text("data test ")
 
 ax4 = fig.add_subplot(3,2,4)
 ax4.imshow(fake_imagesAfromB[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-ax4.title.set_text("digit pred 0 from 8 ")
+ax4.title.set_text("digit pred 1 from 7 ")
 
 
 
@@ -438,10 +438,10 @@ ax5.title.set_text("data test ")
 
 ax6 = fig.add_subplot(3,2,6)
 ax6.imshow(fake_imagesAfromB[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
-ax6.title.set_text("digit pred 0 from 8 ")
+ax6.title.set_text("digit pred 1 from 7 ")
 
 
-fig.savefig("../plots/Shot_rec_df/number zero test.png")
+fig.savefig("../plots/Shot_rec_df/number one test.png")
 plt.close(fig)
 
 
@@ -453,7 +453,7 @@ ax1.title.set_text("data test ")
 
 ax2 = fig.add_subplot(3,2,2)
 ax2.imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-ax2.title.set_text("digit pred 8 from 0 ")
+ax2.title.set_text("digit pred 7 from 1 ")
 
 ax3 = fig.add_subplot(3,2,3)
 ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
@@ -462,7 +462,7 @@ ax3.title.set_text("data test ")
 
 ax4 = fig.add_subplot(3,2,4)
 ax4.imshow(fake_imagesBfromA[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-ax4.title.set_text("digit pred 8 from 0 ")
+ax4.title.set_text("digit pred 7 from 1 ")
 
 
 ax5 = fig.add_subplot(3,2,5)
@@ -472,10 +472,10 @@ ax5.title.set_text("data test ")
 
 ax6 = fig.add_subplot(3,2,6)
 ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
-ax6.title.set_text("digit pred 8 from 0 ")
+ax6.title.set_text("digit pred 7 from 1 ")
 
 
-fig.savefig("../plots/Shot_rec_df/number eight test.png")
+fig.savefig("../plots/Shot_rec_df/number seven test.png")
 plt.close(fig)
 
 
