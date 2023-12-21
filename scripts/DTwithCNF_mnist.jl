@@ -111,7 +111,7 @@ optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 2512
+n_train = 2528
 n_test = 3500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
@@ -225,7 +225,7 @@ for e=1:n_epochs# epoch loop
 
           println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
           "; Genloss=", loss, 
-            "; genloss = ",  loss+(f_all / (8*N)), 
+            "; genloss = ",  loss+(f_all / (imgs*2*N)), 
               "; dissloss = ", (lossAd+lossBd)/2 , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
