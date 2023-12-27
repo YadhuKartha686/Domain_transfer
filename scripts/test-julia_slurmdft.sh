@@ -3,7 +3,7 @@
 #SBATCH --output=outputdt.txt
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=16G
-#SBATCH --time=100:00:00
+#SBATCH --time=120:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --ntasks=1
 
