@@ -254,13 +254,13 @@ for e=1:n_epochs# epoch loop
           plt.close()
   
           imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-          plt.title("digit pred 0 from 8 $e")
+          plt.title("digit pred 1 from 7 $e")
           plt.savefig("../plots/Shot_rec_df/number one$e.png")
           plt.colorbar()
           plt.close()
 
           imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-          plt.title("digit pred 8 from 0 $e")
+          plt.title("digit pred 7 from 1 $e")
           plt.savefig("../plots/Shot_rec_df/number seven$e.png")
           plt.close()
 

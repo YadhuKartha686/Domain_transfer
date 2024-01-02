@@ -19,62 +19,44 @@ using Distributions
 using Images
 
 #### DATA LOADING #####
+nx,ny = 1024, 256
+N = nx*ny;
 
 data_path= "../data/CompassShot.jld2"
 # datadir(CompassShot.jld2)
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
   
-train_xA = zeros(Float32, 2048, 512, 1,1)
-train_xB = zeros(Float32, 2048, 512, 1,1)
+train_xA = zeros(Float32, nx, ny, 1,900)
+train_xB = zeros(Float32, nx, ny, 1,900)
 
-train_YA = ones(Float32,2048,512,1,1)
-train_YB = ones(Float32,2048,512,1,1).*2
+train_YA = ones(Float32,nx,ny,1,900)
+train_YB = ones(Float32,nx,ny,1,900).*2
 
 
 indices_of_A = findall(x -> x == 0.0, train_y[:,1])
 indices_of_B = findall(x -> x == 1.0, train_y[:,1])
-
-# for i=1:148
-#     sigma = 1.0
-#     test_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[752+i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-#     test_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[752+i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-# end 
-
   
-for i=1:1
+for i=1:900
     sigma = 1.0
-    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[i]],KernelFactors.gaussian((sigma,sigma))),(2048,512))
+    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[i]],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[i]],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-
-batch_size = 1
-nx,ny = 2048, 512
-N = nx*ny;
-
-n_train = 752
-
-n_batches = cld(n_train,batch_size)
 
 
 # Define the generator and discriminator networks
 
-n_epochs     = 50000
 device = gpu
-lr     = 1f-3
-lr_step   = 10
-lr_rate = 0.75f0
-clipnorm_val = 10f0
-noise_lev_x  = 0.005f0
-noise_lev_y  = randn(Float32,(2048,512,1,batch_size))./1000
+lr     = 1f-6
 split_scales = true
+low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 2; K = 10; n_hidden = 32 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 4; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
 
 # Create network
-G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true) |> device;
+G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
 
 
 model = Chain(
@@ -183,13 +165,13 @@ model = Chain(
 
 # Define the loss functions
 function Dissloss(real_output, fake_output)
-  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
+  real_loss = 10*mean(Flux.binarycrossentropy.(real_output, 1f0))
   fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
   return (real_loss + fake_loss)
 end
 
 function Genloss(fake_output,x,y) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + Flux.mse(y|> device,x)
+  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 0*Flux.mse(y|> device,x)
 end
 
 
@@ -203,74 +185,96 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-optimizer_g = Flux.ADAM(lr)
+clipnorm_val = 5f0
+optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
-
-XA = train_xA[:,:,:,1:1]
-XB = train_xB[:,:,:,1:1]
-Z_fix =  randn(Float32,2048,512,1,2)
-y = randn(Float32,size(XA))
+imgs = 4
+n_train = 800
+n_test = 805
+n_batches = cld(n_train,imgs)
+YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
+YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-20
+factor = 1f-5
 
-
+n_epochs     = 300
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
-    @time begin
-          ############# Loading domain A data ##############   
-          YA = repeat(y |>cpu, 1, 1, 1, batch_size) |> device
-          YB = repeat(y |>cpu, 1, 1, 1, batch_size) |> device 
-
+  idx_eA = reshape(randperm(n_train), imgs, n_batches)
+  idx_eB = reshape(randperm(n_train), imgs, n_batches)
+  for b = 1:n_batches # batch loop
+        @time begin
+          ############# Loading domain A data ############## 
+          idx = reshape(randperm(imgs*2), imgs*2, 1)
+          inverse_idx = zeros(Int,length(idx))
+          for i in 1:length(idx)
+              inverse_idx[idx[i]] = i
+          end
+          XA = train_xA[:, :, :, idx_eA[:,b]];
+          XB = train_xB[:, :, :, idx_eA[:,b]];  
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          Zx, Zy, lgdet = generator.forward(Z_fix|> device, Y|> device)  #### concat so that network normalizes ####
+          X=X[:,:,:,idx[:]]
+          Y=Y[:,:,:,idx[:]]
+          Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+          Zx = Zx[:,:,:,inverse_idx[:]]
+          Zy = Zy[:,:,:,inverse_idx[:]]
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
-          ZyA = Zy[:,:,:,1:1]
-          ZyB = Zy[:,:,:,2:2]
+          ZyA = Zy[:,:,:,1:imgs]
+          ZyB = Zy[:,:,:,imgs+1:end]
+
+          ZxA = Zx[:,:,:,1:imgs]
+          ZxB = Zx[:,:,:,imgs+1:end]
 
           Zy = cat(ZyB,ZyA,dims=4)
 
-          fake_images,invcall = generator.inverse(Z_fix|>device,Zy)  ###### generating images #######
+          Zx=Zx[:,:,:,idx[:]]
+          Zy=Zy[:,:,:,idx[:]]
 
+          fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+          fake_images = fake_images[:,:,:,inverse_idx[:]]
+          invcall = invcall[:,:,:,inverse_idx[:]]
           ####### getting fake images from respective domain ########
 
-          fake_imagesAfromB = fake_images[:,:,:,2:2]
-          fake_imagesBfromA = fake_images[:,:,:,1:1]
+          fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
+          fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
           ####### discrim training ########
+          for ii=1:2
+            dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
+                real_outputA = discriminatorA(XA|> device)
+                fake_outputA = discriminatorA(fake_imagesAfromB|> device)
+                lossA = Dissloss(real_outputA, fake_outputA)
+            end
+            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
 
-          dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
-              real_outputA = discriminatorA(XA|> device)
-              fake_outputA = discriminatorA(fake_imagesAfromB|> device)
-              lossA = Dissloss(real_outputA, fake_outputA)
+            
+            dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
+                real_outputB = discriminatorB(XB|> device)
+                fake_outputB = discriminatorB(fake_imagesBfromA|> device)
+                lossB = Dissloss(real_outputB, fake_outputB)
+            end
+            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
           end
-          Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
-
-          
-          dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
-              real_outputB = discriminatorB(XB|> device)
-              fake_outputB = discriminatorB(fake_imagesBfromA|> device)
-              lossB = Dissloss(real_outputB, fake_outputB)
-          end
-          Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
-
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
           gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
           gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          
 
           gs = cat(gsB,gsA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
+          Zx = cat(ZxB,ZxA,dims=4)
+          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f5), fake_images, invcall;) #### updating grads wrt image ####
 
-          # generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
-          # generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
+          # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
+          # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
 
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
@@ -287,18 +291,11 @@ for e=1:n_epochs# epoch loop
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
           lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
           lossB = Genloss(fake_outputB,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
-          f_all = 0
-          for i in 1:2
-            X_gen_cpu = cat(fake_imagesAfromB,fake_imagesBfromA,dims=4)|>cpu
+          f_all = norm(Zx)^2
 
-            g = (X_gen_cpu[:,:,1,i] .- X)  
-            f = norm(g)^2
-            # gs[:,:,:,i] =  g
-            f_all += f
-          end
           loss = lossA + lossB #+ ml
 
-          append!(lossnrm, f_all / 2)  # normalize by image size and batch size
+          append!(lossnrm, f_all / (imgs*2*N))  # normalize by image size and batch size
           append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
           append!(genloss, loss)  # normalize by image size and batch size
           append!(dissloss, (lossAd+lossBd)/2 ) # logdet is internally normalized by batch size
@@ -307,230 +304,260 @@ for e=1:n_epochs# epoch loop
           epoch_loss_diss += (lossAd+lossBd)/2
           epoch_loss_gen += loss
 
-          println("Iter: epoch=", e, "/", n_epochs,
-            "; genloss = ",  loss, 
+          println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
+          "; Genloss=", loss, 
+            "; genloss = ",  loss+(f_all / (imgs*2*N)), 
               "; dissloss = ", (lossAd+lossBd)/2 , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
 
           Base.flush(Base.stdout)
+        end
+        
+        if mod(e,1)==0 && mod(b,n_batches)==0
+          avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
+          avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
+          push!(genloss, avg_epoch_lossg)
+          push!(dissloss, avg_epoch_lossd)
+        end
+
+        if mod(e,10) == 0 && mod(b,n_batches)==0
+          imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+          plt.title("data $e")
+          plt.savefig("../plots/Shot_rec_df/vel train$e.png")
+          plt.colorbar()
+          plt.close()
+
+          imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+          plt.title("data $e")
+          plt.savefig("../plots/Shot_rec_df/vel+den train$e.png")
+          plt.colorbar()
+          plt.close()
+  
+          imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plt.title("digit pred 1 from 7 $e")
+          plt.savefig("../plots/Shot_rec_df/vel$e.png")
+          plt.colorbar()
+          plt.close()
+
+          imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plt.title("digit pred 7 from 1 $e")
+          plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
+          plt.close()
+
+          plt.plot(lossnrm)
+          plt.title("loss $e")
+          plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
+          plt.close()
+          plt.plot(logdet_train)
+          plt.title("logdet $e")
+          plt.savefig("../plots/Shot_rec_df/logdet$e.png")
+          plt.close()
+          plt.plot(1:e,genloss[1:e])
+          plt.title("genloss $e")
+          plt.savefig("../plots/Shot_rec_df/genloss$e.png")
+          plt.close()
+          plt.plot(1:e,dissloss[1:e])
+          plt.title("dissloss $e")
+          plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
+          plt.close()
+        end
 
     end
-      if mod(e,100) == 0
-            plot_sdata(XA[:,:,:,1],(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-            plt.title("Shot record train ( vel + den) $e")
-            plt.savefig("../plots/Shot_rec_df/vel+den train$e.png")
-            plt.close()
-    
-            plot_sdata(fake_imagesAfromB[:,:,:,1]|>cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-            plt.title("Shot record pred A from B $e")
-            plt.savefig("../plots/Shot_rec_df/vel$e.png")
-            plt.close()
+    XA = zeros(Float32 , nx,ny,1,imgs)
+    XB = zeros(Float32 , nx,ny,1,imgs)
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
 
-            plot_sdata(fake_imagesBfromA[:,:,:,1]|>cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-            plt.title("Shot record pred B from A $e")
-            plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
-            plt.close()
+    X = cat(XA, XB,dims=4)
+    Y = cat(YA, YB,dims=4)
+    Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
-            plt.plot(lossnrm)
-            plt.title("loss $e")
-            plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
-            plt.close()
-            plt.plot(logdet_train)
-            plt.title("logdet $e")
-            plt.savefig("../plots/Shot_rec_df/logdet$e.png")
-            plt.close()
-            plt.plot(1:e,genloss[1:e])
-            plt.title("genloss $e")
-            plt.savefig("../plots/Shot_rec_df/genloss$e.png")
-            plt.close()
-            plt.plot(1:e,dissloss[1:e])
-            plt.title("dissloss $e")
-            plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
-            plt.close()
-      end
+
+              ######## interchanging conditions to get domain transferred images during inverse call #########
+
+    ZyA = Zy[:,:,:,1:imgs]
+    ZyB = Zy[:,:,:,imgs+1:end]
+
+    Zy = cat(ZyB,ZyA,dims=4)
+
+    fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
+
+              ####### getting fake images from respective domain ########
+
+    fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
+    fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
+
+    fig = plt.figure(figsize=(15, 15))
+    ax1 = fig.add_subplot(3,2,1)
+    ax1.imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+    ax1.title.set_text("data test ")
+
+
+    ax2 = fig.add_subplot(3,2,2)
+    ax2.imshow(fake_imagesAfromBt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.title.set_text(" pred vel from vel+den ")
+
+
+    ax3 = fig.add_subplot(3,2,3)
+    ax3.imshow(XB[:,:,:,2],vmin = 0,vmax = 1)
+    ax3.title.set_text("data test ")
+
+
+    ax4 = fig.add_subplot(3,2,4)
+    ax4.imshow(fake_imagesAfromBt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.title.set_text(" pred vel from vel+den ")
+
+
+
+    ax5 = fig.add_subplot(3,2,5)
+    ax5.imshow(XB[:,:,:,3],vmin = 0,vmax = 1)
+    ax5.title.set_text("data test ")
+
+
+    ax6 = fig.add_subplot(3,2,6)
+    ax6.imshow(fake_imagesAfromBt[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
+    ax6.title.set_text("pred vel from vel+den ")
+
+
+    fig.savefig("../plots/Shot_rec_df/number vel test $e.png")
+    plt.close(fig)
+
+
+    fig = plt.figure(figsize=(15, 15))
+    ax1 = fig.add_subplot(3,2,1)
+    ax1.imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+    ax1.title.set_text("data test ")
+
+
+    ax2 = fig.add_subplot(3,2,2)
+    ax2.imshow(fake_imagesBfromAt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+    ax2.title.set_text(" pred vel+den from vel ")
+
+    ax3 = fig.add_subplot(3,2,3)
+    ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
+    ax3.title.set_text("data test ")
+
+
+    ax4 = fig.add_subplot(3,2,4)
+    ax4.imshow(fake_imagesBfromAt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+    ax4.title.set_text("pred vel+den from vel ")
+
+
+    ax5 = fig.add_subplot(3,2,5)
+    ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
+    ax5.title.set_text("data test ")
+
+
+    ax6 = fig.add_subplot(3,2,6)
+    ax6.imshow(fake_imagesBfromAt[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
+    ax6.title.set_text("pred vel+den from vel ")
+
+
+    fig.savefig("../plots/Shot_rec_df/ vel+den test $e.png")
+    plt.close(fig)
 end
 
-# Main training loop
-# for e=1:n_epochs# epoch loop
-#     epoch_loss_diss=0.0
-#     epoch_loss_gen=0.0
-#     idx_eA = reshape(randperm(n_train), batch_size, n_batches)
-#     idx_eB = reshape(randperm(n_train), batch_size, n_batches)
-#     for b = 1:n_batches # batch loop
-#     	@time begin
 
-#             ############# Loading domain A data ###############
-
-#             XA = train_xA[:, :, :, idx_eA[:,b]];
-#             YA = train_YA[:, :, :, idx_eA[:,b]];
-#             XA .+= noise_lev_x*randn(Float32, size(XA));
-#             YA = YA + noise_lev_y;
-
-#             ############# Loading domain B data ###############
-
-#             XB = train_xB[:, :, :, idx_eB[:,b]];
-#             YB = train_YB[:, :, :, idx_eB[:,b]];
-#             XB .+= noise_lev_x*randn(Float32, size(XB));
-#             YB = YB + noise_lev_y;
-      
-
-#             X = cat(XA, XB,dims=4)
-#             Y = cat(YA, YB,dims=4)
-#             Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
-
-#             ######## interchanging conditions to get domain transferred images during inverse call #########
-
-#             ZyA = Zy[:,:,:,1:4]
-#             ZyB = Zy[:,:,:,5:end]
-
-#             Zy = cat(ZyB,ZyA,dims=4)
-
-#             fake_images,invcall = generator.inverse(Ztest|>device,Zy)  ###### generating images #######
-
-#             ####### getting fake images from respective domain ########
-
-#             fake_imagesAfromB = fake_images[:,:,:,5:end]
-#             fake_imagesBfromA = fake_images[:,:,:,1:4]
-
-#             invcallA = invcall[:,:,:,5:end]
-#             invcallB = invcall[:,:,:,1:4]
-
-#             ####### discrim training ########
-
-#             dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
-#                 real_outputA = discriminatorA(XA|> device)
-#                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
-#                 lossA = Dissloss(real_outputA, fake_outputA)
-#             end
-#             Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
-
-            
-#             dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
-#                 real_outputB = discriminatorB(XB|> device)
-#                 fake_outputB = discriminatorB(fake_imagesBfromA|> device)
-#                 lossB = Dissloss(real_outputB, fake_outputB)
-#             end
-#             Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
-
-#             ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
-                      
-#             gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-#             gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
-
-#             generator.backward_inv(((gsA ./ factor)|>device), fake_imagesAfromB, invcallA;) #### updating grads wrt A ####
-#             generator.backward_inv(((gsB ./ factor)|>device), fake_imagesBfromA, invcallB;) #### updating grads wrt B ####
-
-#             for p in get_params(generator)
-#                 Flux.update!(optimizer_g,p.data,p.grad)
-#             end
-#             clear_grad!(generator) #### updating generator ####
-
-#             #loss calculation for printing
-#             fake_outputA = discriminatorA(fake_imagesAfromB|> device)
-#             fake_outputB = discriminatorB(fake_imagesBfromA|> device)
-#             real_outputA = discriminatorA(XA|> device)
-#             real_outputB = discriminatorB(XB|> device)
-
-#             lossAd = Dissloss(real_outputA, fake_outputA)  #### log(D(real)) + log(1 - D(fake)) ####
-#             lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
-#             lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) ####
-#             lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) ####
-#             ml = norm(Zx)^2/(N*batch_size)
-#             loss = lossA + lossB #+ ml
-
-#             append!(lossnrm, ml)  # normalize by image size and batch size
-# 	          append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
+print("done training!!!")
 
 
-#             epoch_loss_diss += (lossAd+lossBd)/2
-#             epoch_loss_gen += loss
+##### testing ##########
+XA = zeros(Float32 , nx,ny,1,imgs)
+XB = zeros(Float32 , nx,ny,1,imgs)
+XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
+XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
+Z_fix =  randn(Float32,nx,ny,1,imgs*2)
+YA = ones(Float32,size(XA)) + randn(Float32,size(XA)) ./1000
+YB = ones(Float32,size(XB)) .*7 + randn(Float32,size(XB)) ./1000
 
-#             println("Iter: epoch=", e, "/", n_epochs, ", batch=", b, "/", n_batches, 
-# 	            "; genloss = ",  loss, 
-#                 "; dissloss = ", (lossAd+lossBd)/2 , 
-#                 "; f l2 = ",  lossnrm[end], 
-#                 "; lgdet = ", logdet_train[end], "\n")
-
-#             Base.flush(Base.stdout)
-
-#             plt.plot(lossnrm)
-#             plt.title("loss $b")
-#             plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
-#             plt.close()
-#             plt.plot(logdet_train)
-#             plt.title("logdet $b")
-#             plt.savefig("../plots/Shot_rec_df/logdet$e.png")
-#             plt.close()
-
-#         end    
-#     end
-#     avg_epoch_lossd = epoch_loss_diss / size(idx_eA, 2)
-#     avg_epoch_lossg= epoch_loss_gen / size(idx_eA, 2)
-#     push!(genloss, avg_epoch_lossg)
-#     push!(dissloss, avg_epoch_lossd)
-#     plt.plot(1:e,genloss[1:e])
-#     plt.title("genloss $e")
-#     plt.savefig("../plots/Shot_rec_df/genloss$e.png")
-#     plt.close()
-#     plt.plot(1:e,dissloss[1:e])
-#     plt.title("dissloss $e")
-#     plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
-#     plt.close()
-    
-#     if n_epochs % 1 == 0
-        
-#         # Optionally, generate and save a sample image during training
-#         XA = train_xA[:, :, :, 1:4];
-#         YA = train_YA[:, :, :, 1:4];
-#         XA .+= noise_lev_x*randn(Float32, size(XA));
-#         YA = YA + noise_lev_y;
-
-#             ############# Loading domain B data ###############
-
-#         XB = train_xB[:, :, :, 1:4];
-#         YB = train_YB[:, :, :, 1:4];
-#         XB .+= noise_lev_x*randn(Float32, size(XB));
-#         YB = YB + noise_lev_y;
-      
-
-#         X = cat(XA, XB,dims=4)
-#         Y = cat(YA, YB,dims=4)
-#         _, Zy, _ = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
+X = cat(XA, XB,dims=4)
+Y = cat(YA, YB,dims=4)
+Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
 
-#         ZyA = Zy[:,:,:,1:4]
-#         ZyB = Zy[:,:,:,5:end]
+          ######## interchanging conditions to get domain transferred images during inverse call #########
 
-#         Zy = cat(ZyB,ZyA,dims=4)
+ZyA = Zy[:,:,:,1:imgs]
+ZyB = Zy[:,:,:,imgs+1:end]
 
-#         fake_images,invcall = generator.inverse(Ztest|>device,Zy)  ###### generating images #######
+Zy = cat(ZyB,ZyA,dims=4)
 
-#             ####### getting fake images from respective domain ########
+fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
 
-#         fake_imagesAfromB = fake_images[:,:,:,5:end]
-#         fake_imagesBfromA = fake_images[:,:,:,1:4]
+          ####### getting fake images from respective domain ########
 
-#         plot_sdata(train_xB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-#         plt.title("Shot record (vel+den) $e")
-#         plt.savefig("../plots/Shot_rec_df/vel+dentrain$e.png")
-#         plt.close()
+fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
+fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
-#         plot_sdata(train_xA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-#         plt.title("Shot record pred vel) $e")
-#         plt.savefig("../plots/Shot_rec_df/veltrain$e.png")
-#         plt.close()
-#         # Save or visualize the generated_image as needed
+fig = plt.figure(figsize=(15, 15))
+ax1 = fig.add_subplot(3,2,1)
+ax1.imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+ax1.title.set_text("data test ")
 
-#         plot_sdata(fake_imagesAfromB[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-#         plt.title("Shot record pred ( vel from vel+den) $e")
-#         plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
-#         plt.close()
 
-#         plot_sdata(fake_imagesBfromA[:,:,:,1]|> cpu,(0.8,1),vmax=0.04f0,perc=95,cbar=true)
-#         plt.title("Shot record pred ( vel+den from vel) $e")
-#         plt.savefig("../plots/Shot_rec_df/vel$e.png")
-#         plt.close()
-#         # Save or visualize the generated_image as needed
-#     end
-# end
+ax2 = fig.add_subplot(3,2,2)
+ax2.imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+ax2.title.set_text(" pred vel from vel+den ")
+
+
+ax3 = fig.add_subplot(3,2,3)
+ax3.imshow(XB[:,:,:,2],vmin = 0,vmax = 1)
+ax3.title.set_text("data test ")
+
+
+ax4 = fig.add_subplot(3,2,4)
+ax4.imshow(fake_imagesAfromB[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+ax4.title.set_text(" pred vel from vel+den")
+
+
+
+ax5 = fig.add_subplot(3,2,5)
+ax5.imshow(XB[:,:,:,3],vmin = 0,vmax = 1)
+ax5.title.set_text("data test ")
+
+
+ax6 = fig.add_subplot(3,2,6)
+ax6.imshow(fake_imagesAfromB[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
+ax6.title.set_text(" pred vel from vel+den ")
+
+
+fig.savefig("../plots/Shot_rec_df/vel test.png")
+plt.close(fig)
+
+
+fig = plt.figure(figsize=(15, 15))
+ax1 = fig.add_subplot(3,2,1)
+ax1.imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+ax1.title.set_text("data test ")
+
+
+ax2 = fig.add_subplot(3,2,2)
+ax2.imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+ax2.title.set_text("pred vel+den from vel ")
+
+ax3 = fig.add_subplot(3,2,3)
+ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
+ax3.title.set_text("data test ")
+
+
+ax4 = fig.add_subplot(3,2,4)
+ax4.imshow(fake_imagesBfromA[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
+ax4.title.set_text("pred vel+den from vel")
+
+
+ax5 = fig.add_subplot(3,2,5)
+ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
+ax5.title.set_text("data test ")
+
+
+ax6 = fig.add_subplot(3,2,6)
+ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
+ax6.title.set_text("pred vel+den from vel")
+
+
+fig.savefig("../plots/Shot_rec_df/vel+den test.png")
+plt.close(fig)
+
+
+# include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
