@@ -30,9 +30,6 @@ train_y = jldopen(data_path, "r")["Y"]
 train_xA = zeros(Float32, nx, ny, 1,900)
 train_xB = zeros(Float32, nx, ny, 1,900)
 
-train_YA = ones(Float32,nx,ny,1,900)
-train_YB = ones(Float32,nx,ny,1,900).*2
-
 
 indices_of_A = findall(x -> x == 0.0, train_y[:,1])
 indices_of_B = findall(x -> x == 1.0, train_y[:,1])
