@@ -84,7 +84,7 @@ model = Chain(
 
 # Define the loss functions
 function Dissloss(real_output, fake_output)
-  real_loss = 10*mean(Flux.binarycrossentropy.(real_output, 1f0))
+  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
   fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
   return (real_loss + fake_loss)
 end
@@ -104,7 +104,7 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-clipnorm_val = 5f0
+clipnorm_val = 1f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
@@ -120,7 +120,7 @@ YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 300
+n_epochs     = 250
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
@@ -190,7 +190,7 @@ for e=1:n_epochs# epoch loop
 
           gs = cat(gsB,gsA,dims=4)
           Zx = cat(ZxB,ZxA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f5), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f3), fake_images, invcall;) #### updating grads wrt image ####
 
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
