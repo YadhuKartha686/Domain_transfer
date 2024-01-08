@@ -388,7 +388,7 @@ for e=1:n_epochs# epoch loop
     plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 1 ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred$e.png")
     plt.close()
@@ -400,7 +400,7 @@ for e=1:n_epochs# epoch loop
     plt.savefig("../plots/Shot_rec_df/vel data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 1 ")
     plt.savefig("../plots/Shot_rec_df/vel test pred$e.png")
     plt.close()
