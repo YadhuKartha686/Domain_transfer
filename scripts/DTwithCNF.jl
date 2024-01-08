@@ -319,44 +319,42 @@ for e=1:n_epochs# epoch loop
         end
 
         if mod(e,10) == 0 && mod(b,n_batches)==0
-          imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
+          plot_sdata(XA[:,:,:,1],(0.8,1),perc=95,vmax=0.03,cbar=true)
           plt.title("data $e")
           plt.savefig("../plots/Shot_rec_df/vel train$e.png")
           plt.colorbar()
           plt.close()
 
-          imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
+          plot_sdata(XB[:,:,:,1],(0.8,1),perc=95,vmax=0.03,cbar=true)
           plt.title("data $e")
           plt.savefig("../plots/Shot_rec_df/vel+den train$e.png")
-          plt.colorbar()
           plt.close()
   
-          imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plot_sdata(fake_imagesAfromB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
           plt.title("digit pred vel from vel+den $e")
           plt.savefig("../plots/Shot_rec_df/vel$e.png")
-          plt.colorbar()
           plt.close()
 
-          imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
+          plot_sdata(fake_imagesBfromA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
           plt.title("digit pred vel+den from vel $e")
           plt.savefig("../plots/Shot_rec_df/vel+den$e.png")
           plt.close()
 
           plt.plot(lossnrm)
           plt.title("loss $e")
-          plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
+          plt.savefig("../plots/Shot_rec_df/lossnormv$e.png")
           plt.close()
           plt.plot(logdet_train)
           plt.title("logdet $e")
-          plt.savefig("../plots/Shot_rec_df/logdet$e.png")
+          plt.savefig("../plots/Shot_rec_df/logdetv$e.png")
           plt.close()
           plt.plot(1:e,genloss[1:e])
           plt.title("genloss $e")
-          plt.savefig("../plots/Shot_rec_df/genloss$e.png")
+          plt.savefig("../plots/Shot_rec_df/genlossv$e.png")
           plt.close()
           plt.plot(1:e,dissloss[1:e])
           plt.title("dissloss $e")
-          plt.savefig("../plots/Shot_rec_df/dissloss$e.png")
+          plt.savefig("../plots/Shot_rec_df/disslossv$e.png")
           plt.close()
         end
 
@@ -385,74 +383,27 @@ for e=1:n_epochs# epoch loop
     fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
     fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
 
-    fig = plt.figure(figsize=(15, 15))
-    ax1 = fig.add_subplot(3,2,1)
-    ax1.imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
-    ax1.title.set_text("data test ")
+    plot_sdata(XB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plt.title("data test vel+den ")
+    plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
+    plt.close()
 
-
-    ax2 = fig.add_subplot(3,2,2)
-    ax2.imshow(fake_imagesAfromBt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-    ax2.title.set_text(" pred vel from vel+den ")
-
-
-    ax3 = fig.add_subplot(3,2,3)
-    ax3.imshow(XB[:,:,:,2],vmin = 0,vmax = 1)
-    ax3.title.set_text("data test ")
-
-
-    ax4 = fig.add_subplot(3,2,4)
-    ax4.imshow(fake_imagesAfromBt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-    ax4.title.set_text(" pred vel from vel+den ")
+    plot_sdata(fake_imagesBfromA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plt.title.(" pred vel from vel+den 1 ")
+    plt.savefig("../plots/Shot_rec_df/vel+den test pred$e.png")
+    plt.close()
 
 
 
-    ax5 = fig.add_subplot(3,2,5)
-    ax5.imshow(XB[:,:,:,3],vmin = 0,vmax = 1)
-    ax5.title.set_text("data test ")
+    plot_sdata(XA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plt.title("data test vel ")
+    plt.savefig("../plots/Shot_rec_df/vel data test1.png")
+    plt.close()
 
-
-    ax6 = fig.add_subplot(3,2,6)
-    ax6.imshow(fake_imagesAfromBt[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
-    ax6.title.set_text("pred vel from vel+den ")
-
-
-    fig.savefig("../plots/Shot_rec_df/number vel test $e.png")
-    plt.close(fig)
-
-
-    fig = plt.figure(figsize=(15, 15))
-    ax1 = fig.add_subplot(3,2,1)
-    ax1.imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
-    ax1.title.set_text("data test ")
-
-
-    ax2 = fig.add_subplot(3,2,2)
-    ax2.imshow(fake_imagesBfromAt[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-    ax2.title.set_text(" pred vel+den from vel ")
-
-    ax3 = fig.add_subplot(3,2,3)
-    ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
-    ax3.title.set_text("data test ")
-
-
-    ax4 = fig.add_subplot(3,2,4)
-    ax4.imshow(fake_imagesBfromAt[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-    ax4.title.set_text("pred vel+den from vel ")
-
-
-    ax5 = fig.add_subplot(3,2,5)
-    ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
-    ax5.title.set_text("data test ")
-
-
-    ax6 = fig.add_subplot(3,2,6)
-    ax6.imshow(fake_imagesBfromAt[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
-    ax6.title.set_text("pred vel+den from vel ")
-
-
-    fig.savefig("../plots/Shot_rec_df/ vel+den test $e.png")
-    plt.close(fig)
+    plot_sdata(fake_imagesAfromB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+    plt.title.(" pred vel from vel+den 1 ")
+    plt.savefig("../plots/Shot_rec_df/vel test pred$e.png")
+    plt.close()
 end
 
 
@@ -487,74 +438,47 @@ fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images
 fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
 fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
-fig = plt.figure(figsize=(15, 15))
-ax1 = fig.add_subplot(3,2,1)
-ax1.imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
-ax1.title.set_text("data test ")
+
+plot_sdata(XB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title("data test vel+den ")
+plt.savefig("../plots/Shot_rec_df/vel+den data test.png")
+plt.close()
+
+plot_sdata(fake_imagesBfromA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title.(" pred vel from vel+den 1 ")
+plt.savefig("../plots/Shot_rec_df/vel+den test pred 1.png")
+plt.close()
+
+plot_sdata(fake_imagesBfromA[:,:,1,2]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title(" pred vel from vel+den 2")
+plt.savefig("../plots/Shot_rec_df/vel+den test pred 2.png")
+plt.close()
+
+plot_sdata(fake_imagesBfromA[:,:,1,3]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title.(" pred vel from vel+den 3 ")
+plt.savefig("../plots/Shot_rec_df/vel+den test pred 3.png")
+plt.close()
 
 
-ax2 = fig.add_subplot(3,2,2)
-ax2.imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-ax2.title.set_text(" pred vel from vel+den ")
+plot_sdata(XA[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title("data test vel ")
+plt.savefig("../plots/Shot_rec_df/vel data test.png")
+plt.close()
 
+plot_sdata(fake_imagesAfromB[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title.(" pred vel from vel+den 1 ")
+plt.savefig("../plots/Shot_rec_df/vel test pred 1.png")
+plt.close()
 
-ax3 = fig.add_subplot(3,2,3)
-ax3.imshow(XB[:,:,:,2],vmin = 0,vmax = 1)
-ax3.title.set_text("data test ")
+plot_sdata(fake_imagesAfromB[:,:,1,2]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title(" pred vel from vel+den 2")
+plt.savefig("../plots/Shot_rec_df/vel test pred 2.png")
+plt.close()
 
-
-ax4 = fig.add_subplot(3,2,4)
-ax4.imshow(fake_imagesAfromB[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-ax4.title.set_text(" pred vel from vel+den")
-
-
-
-ax5 = fig.add_subplot(3,2,5)
-ax5.imshow(XB[:,:,:,3],vmin = 0,vmax = 1)
-ax5.title.set_text("data test ")
-
-
-ax6 = fig.add_subplot(3,2,6)
-ax6.imshow(fake_imagesAfromB[:,:,1,3]|>cpu,vmin = 0,vmax = 1)
-ax6.title.set_text(" pred vel from vel+den ")
-
-
-fig.savefig("../plots/Shot_rec_df/vel test.png")
-plt.close(fig)
-
-
-fig = plt.figure(figsize=(15, 15))
-ax1 = fig.add_subplot(3,2,1)
-ax1.imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
-ax1.title.set_text("data test ")
-
-
-ax2 = fig.add_subplot(3,2,2)
-ax2.imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-ax2.title.set_text("pred vel+den from vel ")
-
-ax3 = fig.add_subplot(3,2,3)
-ax3.imshow(XA[:,:,:,2],vmin = 0,vmax = 1)
-ax3.title.set_text("data test ")
-
-
-ax4 = fig.add_subplot(3,2,4)
-ax4.imshow(fake_imagesBfromA[:,:,1,2]|>cpu,vmin = 0,vmax = 1)
-ax4.title.set_text("pred vel+den from vel")
-
-
-ax5 = fig.add_subplot(3,2,5)
-ax5.imshow(XA[:,:,:,4],vmin = 0,vmax = 1)
-ax5.title.set_text("data test ")
-
-
-ax6 = fig.add_subplot(3,2,6)
-ax6.imshow(fake_imagesBfromA[:,:,1,4]|>cpu,vmin = 0,vmax = 1)
-ax6.title.set_text("pred vel+den from vel")
-
-
-fig.savefig("../plots/Shot_rec_df/vel+den test.png")
-plt.close(fig)
+plot_sdata(fake_imagesAfromB[:,:,1,3]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
+plt.title.(" pred vel from vel+den 3 ")
+plt.savefig("../plots/Shot_rec_df/vel test pred 3.png")
+plt.close()
 
 
 # include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
