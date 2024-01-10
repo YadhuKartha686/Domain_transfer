@@ -16,119 +16,16 @@ using MLUtils
 using Random; Random.seed!(1)
 
 
-
 model = Chain(
-    Chain([
-      Conv((7, 7), 1 => 64, pad=3, stride=2, bias=false),  # 9_408 parameters
-      BatchNorm(64, relu),            # 128 parameters, plus 128
-      MaxPool((3, 3), pad=1, stride=2),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64, relu),        # 128 parameters, plus 128
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64),              # 128 parameters, plus 128
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64, relu),        # 128 parameters, plus 128
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64),              # 128 parameters, plus 128
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 128, pad=1, stride=2, bias=false),  # 73_728 parameters
-          BatchNorm(128, relu),       # 256 parameters, plus 256
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ),
-        Chain([
-          Conv((1, 1), 64 => 128, stride=2, bias=false),  # 8_192 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128, relu),       # 256 parameters, plus 256
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 128 => 256, pad=1, stride=2, bias=false),  # 294_912 parameters
-          BatchNorm(256, relu),       # 512 parameters, plus 512
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ),
-        Chain([
-          Conv((1, 1), 128 => 256, stride=2, bias=false),  # 32_768 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256, relu),       # 512 parameters, plus 512
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 256 => 512, pad=1, stride=2, bias=false),  # 1_179_648 parameters
-          BatchNorm(512, relu),       # 1_024 parameters, plus 1_024
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ),
-        Chain([
-          Conv((1, 1), 256 => 512, stride=2, bias=false),  # 131_072 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512, relu),       # 1_024 parameters, plus 1_024
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ),
-        identity,
-      ),
-    ]),
-    Chain(
-      AdaptiveMeanPool((1, 1)),
-      MLUtils.flatten,
-      Dense(512 => 2, sigmoid),             # 513_000 parameters
-    ),
-  )
+    Conv((3, 3), 1=>64, relu),
+    x -> maxpool(x, (2,2)),
+    Conv((3, 3), 64=>32, relu),
+    x -> maxpool(x, (2,2)),
+    x -> reshape(x, :, size(x, 4)),
+    Dense(128, 1),
+    sigmoid
+)
 
-# model = ResNet(18);
-# model = Chain(model.layers[1:end-1],AdaptiveMeanPool((1, 1)),
-# MLUtils.flatten,Dense(512,2,softmax))
-# conv_layer = Conv((7, 7), 1 => 64, pad=3, stride=2, bias=false)
-
-# Define the model
-# model = Chain(
-#     conv_layer
-#     # Add more layers if necessary
-# )
 model = gpu(model)
 
 # Training hyperparameters 
@@ -136,54 +33,56 @@ n_epochs     = 20
 # device = gpu
 lr = 1f-3
 opt = Flux.Optimise.ADAM(lr) |> gpu
-loss(x, y) = Flux.binarycrossentropy(x, y) |> gpu
+loss(x, y) = mean(Flux.binarycrossentropy.(x, y))
 
-function normalize_images(data)
-  num_images, height, width, channels = size(data)
-  
-  for i in 1:num_images
-      min_vals = minimum(data[i, :, :, :], dims=(1, 2, 3))
-      max_vals = maximum(data[i, :, :, :], dims=(1, 2, 3))
-      data[i, :, :, :] .= (data[i, :, :, :] .- min_vals) ./ (max_vals .- min_vals)
-  end
-  
-  return data
-end
 
 
 #Loading Data
-data_path= "../data/CompassShot.jld2"
+# Load in training data
+range_digA = [1]
+range_digB = [7]
+# load in training data
+train_x, train_y = MNIST.traindata()
 
-train_X = jldopen(data_path, "r")["X"]
-train_y = jldopen(data_path, "r")["Y"]
-
-test_x = zeros(Float32, 2048, 512, 1:1,301)
-
-for i=1:301
-  sigma = 1.0
-  test_x[:,:,:,i] = imresize(imfilter(train_X[:,:,i+1499],KernelFactors.gaussian((sigma,sigma))),(2048,512))
-end
-test_y = train_y[1500:end,:]
-
-
-train_x = zeros(Float32, 2048, 512, 1:1,1504)
-
-for i=1:1504
-  sigma = 1.0
-  train_x[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(2048,512))
+# grab the digist to train on 
+inds = findall(x -> x in range_digA, train_y)
+train_yA = train_y[inds]
+train_xA = zeros(Float32,16,16,1,5923)
+for i=1:5851
+  train_xA[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
+  train_xA[:,:,1,i] = rotr90(train_xA[:,:,1,i],1)
+  # train_xA[:,:,:,i] = train_x[:,:,inds[i]]
 end
 
-train_y = train_y[1:1504,:]
-num_classes = maximum(train_y) + 1
+inds = findall(x -> x in range_digB, train_y)
+train_yB = train_y[inds]
+train_xB = zeros(Float32,16,16,1,5851)
+for i=1:5851
+
+  train_xB[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
+  train_xB[:,:,1,i] = rotr90(train_xB[:,:,1,i],1)
+  # train_xB[:,:,:,i] = train_x[:,:,inds[i]] 
+end
+train_x = cat(train_xA, train_xB,dims=4)
+train_y = cat(zeros(5851), ones(5851),dims=1)
+num_classes = 2
 
 # Perform one-hot encoding using Flux.onehotbatch
-onehot_labels = Flux.onehotbatch(train_y, 0:num_classes-1)
-onehot_labels_test = Flux.onehotbatch(test_y, 0:num_classes-1)
 # train_x = normalize_images(train_x)
 # test_x = normalize_images(test_x)
+idx = reshape(randperm(11702), 11702, 1)
+
+train_x = train_x[:,:,:,idx]
+train_y = train_y[idx]
+test_x = train_x[:,:,:,10048:10560]
+train_x = train_x[:,:,:,1:10048]
+
+test_y = train_y[10048:10560]
+train_y = train_y[1:10048]
+
 n_train = size(train_x)[end]
 n_test = size(test_x)[end]-1
-batch_size=2
+batch_size=64
 n_batches = cld(n_train, batch_size) 
 n_batches_test = cld(n_test, batch_size) 
 # Training Loop
@@ -205,7 +104,7 @@ for e=1:n_epochs
         x = train_x[:,:,:,idx_e[:,b]]
         x .+= 0.001*randn(Float32, size(x))
         x = x |> gpu
-        y = onehot_labels[:,idx_e[:,b],1] |>gpu
+        y = transpose(train_y[idx_e[:,b]])|>gpu
         grads = Flux.gradient(Flux.params(model)) do
           y_pred = model(x)
           l = loss(y_pred,y)
@@ -218,28 +117,7 @@ for e=1:n_epochs
         # Calculate accuracy for this batch
         y_pred = model(x)
         epoch_loss += loss(y_pred,y)
-        predictions = argmax(y_pred,dims=1)
-        correct_predictions += sum(predictions .== argmax(y, dims=1))
-        push!(losslistpara,loss(y_pred,y))
-        push!(accuracylistpara,sum(predictions .== argmax(y, dims=1))/2)
-
-        plt.plot(1:b,losslistpara[1:b],label="train")
-        plt.xlabel("epoch")
-        plt.ylabel("value")
-        plt.legend()
-        plt.title("Loss per update")
-        plt.savefig("/plot/loss batch $b.png")
-        plt.close()
-
-
-        plt.plot(1:b,accuracylistpara[1:b],label="train")
-        plt.xlabel("epoch")
-        plt.ylabel("value")
-        plt.legend()
-        plt.title("acc per update")
-        plt.savefig("/plot/acc batch $b.png")
-        plt.close()
-
+        correct_predictions += sum(round.(y_pred) .== y)
     end
 
     idx_e_test = reshape(randperm(n_test), batch_size, n_batches_test)  
@@ -247,25 +125,24 @@ for e=1:n_epochs
       x = test_x[:,:,:,idx_e_test[:,b]]
       x .+= 0.001*randn(Float32, size(x))
       x = x |> gpu
-      y = onehot_labels_test[:,idx_e_test[:,b],1] |>gpu
+      y = transpose(test_y[idx_e_test[:,b]])|>gpu
       
       print("batch: $b \n")
       # Calculate accuracy for this batch
       y_pred = model(x)
       epoch_loss_test += loss(y_pred,y)
-      predictions = argmax(y_pred,dims=1)
-      correct_predictions_test += sum(predictions .== argmax(y, dims=1))
+      correct_predictions_test += sum(round.(y_pred) .== y)
   end
     
     # Calculate average loss for the epoch
     avg_epoch_loss_test = epoch_loss_test / size(idx_e_test, 2)
-    accuracy_test = correct_predictions_test / 300
+    accuracy_test = correct_predictions_test / 512
 
     push!(losslist_test, avg_epoch_loss_test)
     push!(accuracylist_test, accuracy_test)
 
     avg_epoch_loss = epoch_loss_test / size(idx_e, 2)
-    accuracy = correct_predictions / 1504
+    accuracy = correct_predictions / 10048
     push!(losslist, avg_epoch_loss)
     push!(accuracylist, accuracy)
     
@@ -277,7 +154,7 @@ for e=1:n_epochs
     plt.ylabel("value")
     plt.legend()
     plt.title("Loss per epoch")
-    plt.savefig("/plot/loss $e.png")
+    plt.savefig("../plots/loss $e.png")
     plt.close()
 
 
@@ -287,7 +164,7 @@ for e=1:n_epochs
     plt.ylabel("value")
     plt.legend()
     plt.title("acc per epoch")
-    plt.savefig("/plot/acc $e.png")
+    plt.savefig("../plots/acc $e.png")
     plt.close()
 end
 
@@ -297,7 +174,7 @@ plt.xlabel("epoch")
 plt.ylabel("value")
 plt.legend()
 plt.title("Loss per epoch")
-plt.savefig("/plot/loss.png")
+plt.savefig("../plots/loss.png")
 plt.close()
 
 
@@ -307,5 +184,5 @@ plt.xlabel("epoch")
 plt.ylabel("value")
 plt.legend()
 plt.title("acc per epoch")
-plt.savefig("/plot/acc.png")
+plt.savefig("../plots/acc.png")
 plt.close()

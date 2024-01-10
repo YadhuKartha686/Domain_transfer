@@ -9,4 +9,4 @@
 
 module load Julia/1.8/5
 
-srun julia DTwithCNF_mnist.jl
+srun julia CNF_MNIST.jl
