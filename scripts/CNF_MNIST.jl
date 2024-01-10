@@ -242,8 +242,8 @@ for e=1:n_epochs# epoch loop
 
               ####### getting fake images from respective domain ########
 
-    fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
-    fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
+    fake_imagesBfromAt = fake_images[:,:,:,imgs+1:end]
+    fake_imagesAfromBt = fake_images[:,:,:,1:imgs]
 
     fig = plt.figure(figsize=(15, 15))
     ax1 = fig.add_subplot(3,2,1)
