@@ -106,7 +106,7 @@ Znoise = randn(Float32,16,16,1,imgs*2)
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 200
+n_epochs     = 500
 for e=1:n_epochs# epoch loop
   epoch_loss_gen=0.0
   idx_eA = reshape(randperm(n_train), imgs, n_batches)
