@@ -97,8 +97,8 @@ optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 4000
-n_test = 4500
+n_train = 400
+n_test = 450
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
@@ -106,7 +106,7 @@ Znoise = randn(Float32,16,16,1,imgs*2)
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 500
+n_epochs     = 1000
 for e=1:n_epochs# epoch loop
   epoch_loss_gen=0.0
   idx_eA = reshape(randperm(n_train), imgs, n_batches)
