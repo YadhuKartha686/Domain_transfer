@@ -111,8 +111,8 @@ optimizer_db = Flux.ADAM(lr)
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 4000
-n_test = 4500
+n_train = 5000
+n_test = 5200
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
@@ -120,7 +120,7 @@ YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-5
 
-n_epochs     = 200
+n_epochs     = 1000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
@@ -190,7 +190,7 @@ for e=1:n_epochs# epoch loop
 
           gs = cat(gsB,gsA,dims=4)
           Zx = cat(ZxB,ZxA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f5), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2), fake_images, invcall;) #### updating grads wrt image ####
 
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
