@@ -97,13 +97,13 @@ optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 4000
+n_train = 320
 n_test = 4500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 Znoise = randn(Float32,16,16,1,imgs*2)
-lossnrm      = []; logdet_train = []; 
+lossnrm      = []; logdet_train = [];lossnrma      = [];lossnrmb      = [];
 factor = 1f-5
 
 n_epochs     = 1000
@@ -159,11 +159,15 @@ for e=1:n_epochs# epoch loop
 
           #loss calculation for printing
           f_all = norm(Zx)^2
+          f_a = norm(Zx[:,:,:,1:imgs])^2
+          f_b = norm(Zx[:,:,:,1:imgs])^2
           lossA = Flux.mse(fake_imagesAfromB,XA|>device)
           lossB = Flux.mse(fake_imagesBfromA,XB|>device)
           loss = lossA+lossB
 
           append!(lossnrm, f_all / (imgs*2*N))  # normalize by image size and batch size
+          append!(lossnrma, f_a / (imgs*N))  # normalize by image size and batch size
+          append!(lossnrmb, f_b / (imgs*N))  # normalize by image size and batch size
           append!(logdet_train, (-lgdet) / N) # logdet is internally normalized by batch size
           append!(genloss, loss)  # normalize by image size and batch size
 
@@ -172,6 +176,8 @@ for e=1:n_epochs# epoch loop
 
           println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
           "; Genloss=", loss, 
+          "; ZxA=", f_a,
+          "; ZXB=", f_b,
             "; genloss = ",  loss+(f_all / (imgs*2*N)) , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
@@ -213,6 +219,14 @@ for e=1:n_epochs# epoch loop
           plt.plot(lossnrm)
           plt.title("loss $e")
           plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
+          plt.close()
+          plt.plot(lossnrma)
+          plt.title("lossa $e")
+          plt.savefig("../plots/Shot_rec_df/lossnorma$e.png")
+          plt.close()
+          plt.plot(lossnrmb)
+          plt.title("lossb $e")
+          plt.savefig("../plots/Shot_rec_df/lossnormb$e.png")
           plt.close()
           plt.plot(logdet_train)
           plt.title("logdet $e")
