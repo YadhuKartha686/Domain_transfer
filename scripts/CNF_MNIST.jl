@@ -176,8 +176,8 @@ for e=1:n_epochs# epoch loop
 
           println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
           "; Genloss=", loss, 
-          "; ZxA=", f_a,
-          "; ZXB=", f_b,
+          "; ZxA=", f_a/(imgs*N),
+          "; ZXB=", f_b/(imgs*N),
             "; genloss = ",  loss+(f_all / (imgs*2*N)) , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
