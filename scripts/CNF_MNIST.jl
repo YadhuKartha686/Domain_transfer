@@ -60,7 +60,7 @@ N = nx*ny;
 
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-6
+lr     = 1f-4
 epochs = 30
 batch_size = 1
 low = 0.5f0
@@ -143,7 +143,7 @@ for e=1:n_epochs# epoch loop
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
           gsA = gradient(x -> Flux.mse(x,XA|>device), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x ->Flux.mse(x,XB|>device), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsB = gradient(x -> Flux.mse(x,XB|>device), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
 
           gs = cat(gsA,gsB,dims=4)
