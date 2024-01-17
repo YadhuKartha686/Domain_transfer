@@ -147,7 +147,7 @@ for e=1:n_epochs# epoch loop
           
 
           gs = cat(gsA,gsB,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward_inv(((gs[:,:,:,idx[:]] ./ factor)|>device) + Zx[:,:,:,idx[:]]/(imgs*2), fake_images[:,:,:,idx[:]], invcall[:,:,:,idx[:]];) #### updating grads wrt image ####
 
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
@@ -193,29 +193,6 @@ for e=1:n_epochs# epoch loop
         end
 
         if mod(e,10) == 0 && mod(b,n_batches)==0
-          imshow(XA[:,:,:,1],vmin = 0,vmax = 1)
-          plt.title("data $e")
-          plt.savefig("../plots/Shot_rec_df/number one train$e.png")
-          plt.colorbar()
-          plt.close()
-
-          imshow(XB[:,:,:,1],vmin = 0,vmax = 1)
-          plt.title("data $e")
-          plt.savefig("../plots/Shot_rec_df/number seven train$e.png")
-          plt.colorbar()
-          plt.close()
-  
-          imshow(fake_imagesAfromB[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-          plt.title("digit pred 1 from 7 $e")
-          plt.savefig("../plots/Shot_rec_df/number one$e.png")
-          plt.colorbar()
-          plt.close()
-
-          imshow(fake_imagesBfromA[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
-          plt.title("digit pred 7 from 1 $e")
-          plt.savefig("../plots/Shot_rec_df/number seven$e.png")
-          plt.close()
-
           plt.plot(lossnrm)
           plt.title("loss $e")
           plt.savefig("../plots/Shot_rec_df/lossnorm$e.png")
