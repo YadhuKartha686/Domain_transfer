@@ -89,8 +89,8 @@ function Dissloss(real_output, fake_output)
   return (real_loss + fake_loss)
 end
 
-function Genloss(fake_output,x,y) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 0*Flux.mse(y|> device,x)
+function Genloss(fake_output,x) 
+  return mean(Flux.binarycrossentropy.(fake_output, 1f0))
 end
 
 
@@ -118,7 +118,7 @@ YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-5
+factor = 1f-2
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
@@ -152,41 +152,39 @@ for e=1:n_epochs# epoch loop
           ZxA = Zx[:,:,:,1:imgs]
           ZxB = Zx[:,:,:,imgs+1:end]
 
-          Zy = cat(ZyB,ZyA,dims=4)
-
-          Zx=Zx[:,:,:,idx[:]]
-          Zy=Zy[:,:,:,idx[:]]
+          Zy = cat(ZyB,ZyA,dims=4)       
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
-          fake_images = fake_images[:,:,:,inverse_idx[:]]
-          invcall = invcall[:,:,:,inverse_idx[:]]
+
           ####### getting fake images from respective domain ########
 
           fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
           fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
           ####### discrim training ########
-          for ii=1:2
-            dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
+          
+          dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
                 real_outputA = discriminatorA(XA|> device)
                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
                 lossA = Dissloss(real_outputA, fake_outputA)
-            end
-            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
+          end
+          Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
 
             
-            dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
+          dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
                 real_outputB = discriminatorB(XB|> device)
                 fake_outputB = discriminatorB(fake_imagesBfromA|> device)
                 lossB = Dissloss(real_outputB, fake_outputB)
-            end
-            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
           end
+          Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
+          
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> mean(Flux.binarycrossentropy.((discriminatorA(x|> device),x), 1f0)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> mean(Flux.binarycrossentropy.((discriminatorB(x|> device),x), 1f0)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
+          # gsA = gradient(x -> Genloss(discriminatorA(x|> device),x), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          # gsB = gradient(x -> Genloss(discriminatorB(x|> device),x), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
           gs = cat(gsB,gsA,dims=4)
           Zx = cat(ZxB,ZxA,dims=4)
@@ -480,3 +478,10 @@ plt.close(fig)
 
 
 # include("/home/ykartha6/juliacode/Domain_transfer/scripts/DTwithCNF_mnist.jl")
+
+
+
+# plt.title("gradient")
+# plt.savefig("../plots/Shot_rec_df/gradient when putting flux loss.png")
+# plt.colorbar()
+# plt.close()
