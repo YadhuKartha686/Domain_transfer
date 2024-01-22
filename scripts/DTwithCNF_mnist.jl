@@ -72,12 +72,12 @@ chan_x = 1; chan_y = 1; L = 4; K = 11; n_hidden = 128 # Number of hidden channel
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
 
 model = Chain(
-    Conv((3, 3), 1=>64, relu),
+    Conv((3, 3), 1=>64, relu;pad = 1),
     x -> maxpool(x, (2,2)),
-    Conv((3, 3), 64=>32, relu),
+    Conv((3, 3), 64=>32, relu;pad=1),
     x -> maxpool(x, (2,2)),
     x -> reshape(x, :, size(x, 4)),
-    Dense(128, 1),
+    Dense(512, 1),
     sigmoid
 )
 
@@ -104,7 +104,7 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-clipnorm_val = 5f0
+clipnorm_val = 10f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 optimizer_da = Flux.ADAM(lr)
 optimizer_db = Flux.ADAM(lr)
@@ -118,7 +118,7 @@ YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-1
+factor = 1f-3
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
@@ -181,15 +181,15 @@ for e=1:n_epochs# epoch loop
           end
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> mean(Flux.binarycrossentropy.((discriminatorA(x|> device),x), 1f0)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> mean(Flux.binarycrossentropy.((discriminatorB(x|> device),x), 1f0)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> mean(Flux.binarycrossentropy.(discriminatorA(x|> device), 1f0)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> mean(Flux.binarycrossentropy.(discriminatorB(x|> device), 1f0)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
           # gsA = gradient(x -> Genloss(discriminatorA(x|> device),x), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
           # gsB = gradient(x -> Genloss(discriminatorB(x|> device),x), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
 
           gs = cat(gsB,gsA,dims=4)
           Zx = cat(ZxB,ZxA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f5), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f3), fake_images, invcall;) #### updating grads wrt image ####
 
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
