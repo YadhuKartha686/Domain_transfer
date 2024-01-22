@@ -66,7 +66,7 @@ batch_size = 1
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 3; K = 11; n_hidden = 64 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 4; K = 11; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
