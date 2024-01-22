@@ -163,21 +163,22 @@ for e=1:n_epochs# epoch loop
 
           ####### discrim training ########
           
-          dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
+          for ii=1:2
+            dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
                 real_outputA = discriminatorA(XA|> device)
                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
                 lossA = Dissloss(real_outputA, fake_outputA)
-          end
-          Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
+            end
+            Flux.Optimise.update!(optimizer_da, Flux.params(discriminatorA),dA_grads)  #### domain A discrim ####
 
             
-          dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
+            dB_grads = Flux.gradient(Flux.params(discriminatorB)) do
                 real_outputB = discriminatorB(XB|> device)
                 fake_outputB = discriminatorB(fake_imagesBfromA|> device)
                 lossB = Dissloss(real_outputB, fake_outputB)
+            end
+            Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
           end
-          Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
-          
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
           gsA = gradient(x -> mean(Flux.binarycrossentropy.((discriminatorA(x|> device),x), 1f0)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
