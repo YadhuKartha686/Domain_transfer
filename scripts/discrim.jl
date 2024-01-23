@@ -17,12 +17,12 @@ using Random; Random.seed!(1)
 
 
 model = Chain(
-    Conv((3, 3), 1=>64, relu),
+    Conv((3, 3), 1=>64, relu;pad=1),
     x -> maxpool(x, (2,2)),
-    Conv((3, 3), 64=>32, relu),
+    Conv((3, 3), 64=>32, relu;pad=1),
     x -> maxpool(x, (2,2)),
     x -> reshape(x, :, size(x, 4)),
-    Dense(128, 1),
+    Dense(512, 1),
     sigmoid
 )
 
