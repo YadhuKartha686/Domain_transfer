@@ -66,7 +66,7 @@ batch_size = 1
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 4; K = 11; n_hidden = 64 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 2; K = 5; n_hidden = 64 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
@@ -104,10 +104,10 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 opt_adam = "adam"
-clipnorm_val = 100f0
+clipnorm_val = 5f0
 lrd = 1f-5
-# optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lrg))
-optimizer_g = Flux.ADAM(lrg)
+optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lrg))
+# optimizer_g = Flux.ADAM(lrg)
 optimizer_da = Flux.ADAM(lrd)
 optimizer_db = Flux.ADAM(lrd)
 genloss=[]
@@ -120,7 +120,7 @@ YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-17
+factor = 1f-19
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
