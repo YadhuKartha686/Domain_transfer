@@ -84,9 +84,9 @@ model = Chain(
 
 # Define the loss functions
 function Dissloss(real_output, fake_output)
-  real_loss = 10*mean(Flux.binarycrossentropy.(real_output, 1f0))
+  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
   fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
-  return (real_loss + fake_loss)
+  return 0.5f0*(real_loss + fake_loss)
 end
 
 function Genloss(fake_output) 
