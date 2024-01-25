@@ -77,7 +77,7 @@ model = Chain(
     Conv((3, 3), 64=>32, relu;pad=1),
     x -> maxpool(x, (2,2)),
     x -> reshape(x, :, size(x, 4)),
-    Dense(128, 1),
+    Dense(512, 1),
     sigmoid
 )
 
