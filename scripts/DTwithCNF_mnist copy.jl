@@ -106,20 +106,20 @@ discriminatorB = gpu(model)
 opt_adam = "adam"
 clipnorm_val = 5f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
-lrd = 5f-5
+lrd = 1f-5
 optimizer_da = Flux.ADAM(lrd)
 optimizer_db = Flux.ADAM(lrd)
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 32
+n_train = 1024
 n_test = 4500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-7
+factor = 1f-15
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
@@ -139,12 +139,10 @@ for e=1:n_epochs# epoch loop
           XB = train_xB[:, :, :, idx_eA[:,b]];  
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          X=X[:,:,:,idx[:]]
-          Y=Y[:,:,:,idx[:]]
+     
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
-          generator.backward(Zx / imgs*2, Zx, Zy;)
-          Zx = Zx[:,:,:,inverse_idx[:]]
-          Zy = Zy[:,:,:,inverse_idx[:]]
+          
+ 
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -154,14 +152,12 @@ for e=1:n_epochs# epoch loop
           ZxA = Zx[:,:,:,1:imgs]
           ZxB = Zx[:,:,:,imgs+1:end]
 
-          Zy = cat(ZyB,ZyA,dims=4)
+          Zy1 = cat(ZyB,ZyA,dims=4)
 
-          Zx=Zx[:,:,:,idx[:]]
-          Zy=Zy[:,:,:,idx[:]]
+     
 
-          fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
-          fake_images = fake_images[:,:,:,inverse_idx[:]]
-          invcall = invcall[:,:,:,inverse_idx[:]]
+          fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
+  
           ####### getting fake images from respective domain ########
 
           fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
@@ -191,9 +187,8 @@ for e=1:n_epochs# epoch loop
           
 
           gs = cat(gsB,gsA,dims=4)
-          Zx = cat(ZxB,ZxA,dims=4)
           generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
-
+          generator.backward(Zx / imgs*2, Zx, Zy;)
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
 

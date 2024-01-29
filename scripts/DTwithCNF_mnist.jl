@@ -60,7 +60,7 @@ N = nx*ny;
 
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-6
+lr     = 1f-5
 epochs = 30
 batch_size = 1
 low = 0.5f0
@@ -84,9 +84,9 @@ model = Chain(
 
 # Define the loss functions
 function Dissloss(real_output, fake_output)
-  real_loss = 10*mean(Flux.binarycrossentropy.(real_output, 1f0))
+  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
   fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
-  return (real_loss + fake_loss)
+  return 0.5f0*(real_loss + fake_loss)
 end
 
 function Genloss(fake_output,x,y) 
@@ -106,21 +106,22 @@ discriminatorB = gpu(model)
 opt_adam = "adam"
 clipnorm_val = 5f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
-optimizer_da = Flux.ADAM(lr)
-optimizer_db = Flux.ADAM(lr)
+lrd = 1f-5
+optimizer_da = Flux.ADAM(lrd)
+optimizer_db = Flux.ADAM(lrd)
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 4000
+n_train = 1024
 n_test = 4500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-5
+factor = 1f-15
 
-n_epochs     = 300
+n_epochs     = 1000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
@@ -138,11 +139,10 @@ for e=1:n_epochs# epoch loop
           XB = train_xB[:, :, :, idx_eA[:,b]];  
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
-          X=X[:,:,:,idx[:]]
-          Y=Y[:,:,:,idx[:]]
+     
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
-          Zx = Zx[:,:,:,inverse_idx[:]]
-          Zy = Zy[:,:,:,inverse_idx[:]]
+          
+ 
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -152,21 +152,19 @@ for e=1:n_epochs# epoch loop
           ZxA = Zx[:,:,:,1:imgs]
           ZxB = Zx[:,:,:,imgs+1:end]
 
-          Zy = cat(ZyB,ZyA,dims=4)
+          Zy1 = cat(ZyB,ZyA,dims=4)
 
-          Zx=Zx[:,:,:,idx[:]]
-          Zy=Zy[:,:,:,idx[:]]
+     
 
-          fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
-          fake_images = fake_images[:,:,:,inverse_idx[:]]
-          invcall = invcall[:,:,:,inverse_idx[:]]
+          fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
+  
           ####### getting fake images from respective domain ########
 
           fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
           fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
           ####### discrim training ########
-          for ii=1:2
+          # for ii=1:2
             dA_grads = Flux.gradient(Flux.params(discriminatorA)) do
                 real_outputA = discriminatorA(XA|> device)
                 fake_outputA = discriminatorA(fake_imagesAfromB|> device)
@@ -181,7 +179,7 @@ for e=1:n_epochs# epoch loop
                 lossB = Dissloss(real_outputB, fake_outputB)
             end
             Flux.Optimise.update!(optimizer_db, Flux.params(discriminatorB),dB_grads)  #### domain B discrim ####
-          end
+          # end
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
           gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
@@ -189,9 +187,8 @@ for e=1:n_epochs# epoch loop
           
 
           gs = cat(gsB,gsA,dims=4)
-          Zx = cat(ZxB,ZxA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device) + Zx/(imgs*2*1f5), fake_images, invcall;) #### updating grads wrt image ####
-
+          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward(Zx / imgs*2, Zx, Zy;)
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
 
@@ -271,13 +268,13 @@ for e=1:n_epochs# epoch loop
           plt.title("logdet $e")
           plt.savefig("../plots/Shot_rec_df/logdet$e.png")
           plt.close()
+      
           plt.plot(1:e,dissloss[1:e],label = "Diss")
           plt.plot(1:e,genloss[1:e], label = "Gen")
           plt.title("ganloss $e")
           plt.legend()
           plt.savefig("../plots/Shot_rec_df/ganloss$e.png")
           plt.close()
-        
         end
 
     end
