@@ -379,7 +379,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel+den from vel 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred1_$e.png")
     plt.close()
 
@@ -389,7 +389,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel from vel+den 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred1_$e.png")
     plt.close()
 
@@ -401,7 +401,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesBfromAt[:,:,1,2]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel+den from vel 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred2_$e.png")
     plt.close()
 
@@ -411,7 +411,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesAfromBt[:,:,1,2]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel from vel+den 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred2_$e.png")
     plt.close()
 
@@ -423,7 +423,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesBfromAt[:,:,1,3]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel+den from vel 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred3_$e.png")
     plt.close()
 
@@ -433,7 +433,7 @@ for e=1:n_epochs# epoch loop
     plt.close()
 
     plot_sdata(fake_imagesAfromBt[:,:,1,3]|>cpu,(0.8,1),perc=95,vmax=0.03,cbar=true)
-    plt.title.(" pred vel from vel+den 1 ")
+    plt.title.(" pred vel from vel+den 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred3_$e.png")
     plt.close()
 end
