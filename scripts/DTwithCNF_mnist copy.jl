@@ -130,13 +130,9 @@ for e=1:n_epochs# epoch loop
   for b = 1:n_batches # batch loop
         @time begin
           ############# Loading domain A data ############## 
-          idx = reshape(randperm(imgs*2), imgs*2, 1)
-          inverse_idx = zeros(Int,length(idx))
-          for i in 1:length(idx)
-              inverse_idx[idx[i]] = i
-          end
-          XA = train_xA[:, :, :, idx_eA[:,b]];
-          XB = train_xB[:, :, :, idx_eA[:,b]];  
+    
+          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,16,16,1,imgs) ./10000
+          XB = train_xB[:, :, :, idx_eA[:,b]] + randn(Float32,16,16,1,imgs) ./10000
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
      
@@ -280,8 +276,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , 16,16,1,imgs)
     XB = zeros(Float32 , 16,16,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs] +  randn(Float32,16,16,1,imgs) ./1000
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs] + randn(Float32,16,16,1,imgs) ./1000
 
     X = cat(XA, XB,dims=4)
     Y = cat(YA, YB,dims=4)
