@@ -57,106 +57,34 @@ chan_x = 1; chan_y = 1; L = 4; K = 10; n_hidden = 128 # Number of hidden channel
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
 
 model = Chain(
-    Chain([
-      Conv((7, 7), 1 => 64, pad=3, stride=2, bias=false),  # 9_408 parameters
-      BatchNorm(64, relu),            # 128 parameters, plus 128
-      MaxPool((3, 3), pad=1, stride=2),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64, relu),        # 128 parameters, plus 128
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64),              # 128 parameters, plus 128
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64, relu),        # 128 parameters, plus 128
-          Conv((3, 3), 64 => 64, pad=1, bias=false),  # 36_864 parameters
-          BatchNorm(64),              # 128 parameters, plus 128
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 64 => 128, pad=1, stride=2, bias=false),  # 73_728 parameters
-          BatchNorm(128, relu),       # 256 parameters, plus 256
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ),
-        Chain([
-          Conv((1, 1), 64 => 128, stride=2, bias=false),  # 8_192 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128, relu),       # 256 parameters, plus 256
-          Conv((3, 3), 128 => 128, pad=1, bias=false),  # 147_456 parameters
-          BatchNorm(128),             # 256 parameters, plus 256
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 128 => 256, pad=1, stride=2, bias=false),  # 294_912 parameters
-          BatchNorm(256, relu),       # 512 parameters, plus 512
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ),
-        Chain([
-          Conv((1, 1), 128 => 256, stride=2, bias=false),  # 32_768 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256, relu),       # 512 parameters, plus 512
-          Conv((3, 3), 256 => 256, pad=1, bias=false),  # 589_824 parameters
-          BatchNorm(256),             # 512 parameters, plus 512
-        ),
-        identity,
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 256 => 512, pad=1, stride=2, bias=false),  # 1_179_648 parameters
-          BatchNorm(512, relu),       # 1_024 parameters, plus 1_024
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ),
-        Chain([
-          Conv((1, 1), 256 => 512, stride=2, bias=false),  # 131_072 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ]),
-      ),
-      Parallel(
-        Metalhead.addrelu,
-        Chain(
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512, relu),       # 1_024 parameters, plus 1_024
-          Conv((3, 3), 512 => 512, pad=1, bias=false),  # 2_359_296 parameters
-          BatchNorm(512),             # 1_024 parameters, plus 1_024
-        ),
-        identity,
-      ),
-    ]),
-    Chain(
-      AdaptiveMeanPool((1, 1)),
-      MLUtils.flatten,
-      Dense(512 => 1, sigmoid),             # 513_000 parameters
-    ),
-  )
+  # First convolutional layer
+  Conv((7, 7), 1=>32, relu, pad=(3,3), stride=(2,2)),
+  MaxPool((3,3), stride=(2,2)), # Aggressive pooling to reduce dimensions
+  
+  # Second convolutional layer
+  Conv((5, 5), 32=>64, relu, pad=(2,2), stride=(2,2)),
+  MaxPool((3,3), stride=(2,2)), # Further reduction
+  
+  # Third convolutional layer
+  Conv((5, 5), 64=>64, relu, pad=1),
+  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+  # Fourth convolutional layer
+  Conv((3, 3), 64=>64, relu, pad=1),
+  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+
+  Conv((3, 3), 64=>64, relu, pad=1),
+  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+  
+  # Flatten the output of the last convolutional layer before passing it to the dense layer
+  Flux.flatten,
+  
+  # Fully connected layer
+  Dense(448, 128, relu),
+  
+  # Output layer for binary classification
+  Dense(128, 1),
+  sigmoid
+)
 
 
 
