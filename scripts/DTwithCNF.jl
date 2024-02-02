@@ -371,7 +371,7 @@ for e=1:n_epochs# epoch loop
     push!(mseofimb, Flux.mse(XB,fake_imagesBfromAt|>cpu))
     push!(mseofima, Flux.mse(XA,fake_imagesAfromBt|>cpu))
 
-    if mod(e,10) == 0 && mod(b,n_batches)==0
+    if mod(e,10) == 0
       plt.plot(mseofima,label="domain A")
       plt.plot(mseofimb,label="domain B")
       plt.title("mseloss of testimg $e")
