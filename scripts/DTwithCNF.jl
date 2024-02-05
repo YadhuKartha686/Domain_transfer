@@ -51,7 +51,7 @@ batch_size = 1
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 4; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 5; K = 10; n_hidden = 512 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
@@ -224,7 +224,7 @@ for e=1:n_epochs# epoch loop
           println("Iter: epoch=", e, "/", n_epochs,":batch = ",b,
           "; Genloss=", loss, 
             "; genloss = ",  loss+(f_all / (imgs*2*N)), 
-              "; dissloss = ", (lossAd+lossBd)/2 , 
+              "; dissloss = ", (lossAd+lossBd) , 
               "; f l2 = ",  lossnrm[end], 
               "; lgdet = ", logdet_train[end], "\n")
 
