@@ -120,7 +120,7 @@ dissloss = []
 mseofimb=[]
 mseofima=[]
 imgs = 4
-n_train = 800
+n_train = 4
 n_test = 805
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
@@ -139,8 +139,8 @@ for e=1:n_epochs# epoch loop
         @time begin
           ############# Loading domain A data ############## 
           
-          XA = train_xA[:, :, :, idx_eA[:,b]];
-          XB = train_xB[:, :, :, idx_eA[:,b]];  
+          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,nx,ny,1,imgs) .* 1f-6
+          XB = train_xB[:, :, :, idx_eA[:,b]] + randn(Float32,nx,ny,1,imgs) .* 1f-6 
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
 
@@ -281,8 +281,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , nx,ny,1,imgs)
     XB = zeros(Float32 , nx,ny,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs]
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs]
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs] + randn(Float32,nx,ny,1,imgs) .* 1f-6
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs] + randn(Float32,nx,ny,1,imgs) .* 1f-6
 
     X = cat(XA, XB,dims=4)
     Y = cat(YA, YB,dims=4)
