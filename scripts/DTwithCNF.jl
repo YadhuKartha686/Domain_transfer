@@ -120,7 +120,7 @@ dissloss = []
 mseofimb=[]
 mseofima=[]
 imgs = 4
-n_train = 4
+n_train = 800
 n_test = 805
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
@@ -129,7 +129,7 @@ YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-17
 
-n_epochs     = 300
+n_epochs     = 1000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
