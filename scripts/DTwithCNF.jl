@@ -4,7 +4,7 @@ using DrWatson
 using Flux
 using LinearAlgebra
 using Random
-using Metalhead
+# using Metalhead
 using JLD2
 using Statistics
 using ImageQualityIndexes 
@@ -12,11 +12,11 @@ using PyPlot
 using SlimPlotting
 using InvertibleNetworks
 using MLUtils
-using BSON 
+# using BSON 
 # using Wavelets
-using StatsBase
-using Distributions
-using Images
+# using StatsBase
+# using Distributions
+# using Images
 
 #### DATA LOADING #####
 nx,ny = 1024, 256
@@ -45,9 +45,7 @@ end
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-5
-epochs = 30
-batch_size = 1
+lr     = 5f-5
 low = 0.5f0
 
 # Architecture parametrs
@@ -109,10 +107,9 @@ discriminatorB = gpu(model)
 # discriminatorA = model
 # discriminatorB = model
 
-opt_adam = "adam"
 clipnorm_val = 5f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
-lrd = 1f-6
+lrd = 1f-5
 optimizer_da = Flux.ADAM(lrd)
 optimizer_db = Flux.ADAM(lrd)
 genloss=[]
@@ -120,7 +117,7 @@ dissloss = []
 mseofimb=[]
 mseofima=[]
 imgs = 4
-n_train = 800
+n_train = 4
 n_test = 805
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
