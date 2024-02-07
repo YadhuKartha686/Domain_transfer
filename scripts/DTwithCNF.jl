@@ -14,9 +14,9 @@ using InvertibleNetworks
 using MLUtils
 # using BSON 
 # using Wavelets
-# using StatsBase
-# using Distributions
-# using Images
+using StatsBase
+using Distributions
+using Images
 
 #### DATA LOADING #####
 nx,ny = 1024, 256
