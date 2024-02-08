@@ -77,10 +77,10 @@ model = Chain(
   Flux.flatten,
   
   # Fully connected layer
-  Dense(448, 128, relu),
+  Dense(64, 64, relu),
   
   # Output layer for binary classification
-  Dense(128, 1),
+  Dense(64, 1),
   sigmoid
 )
 
