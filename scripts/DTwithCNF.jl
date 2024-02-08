@@ -136,8 +136,8 @@ for e=1:n_epochs# epoch loop
         @time begin
           ############# Loading domain A data ############## 
           
-          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,nx,ny,1,imgs) .* 1f-6
-          XB = train_xB[:, :, :, idx_eA[:,b]] + randn(Float32,nx,ny,1,imgs) .* 1f-6 
+          XA = train_xA[:, :, :, idx_eA[:,b]]
+          XB = train_xB[:, :, :, idx_eA[:,b]]
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
 
@@ -278,8 +278,8 @@ for e=1:n_epochs# epoch loop
     end
     XA = zeros(Float32 , nx,ny,1,imgs)
     XB = zeros(Float32 , nx,ny,1,imgs)
-    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs] + randn(Float32,nx,ny,1,imgs) .* 1f-6
-    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs] + randn(Float32,nx,ny,1,imgs) .* 1f-6
+    XA[:,:,:,1:imgs] = train_xA[:,:,:,n_test:n_test-1+imgs] 
+    XB[:,:,:,1:imgs] = train_xB[:,:,:,n_test:n_test-1+imgs] 
 
     X = cat(XA, XB,dims=4)
     Y = cat(YA, YB,dims=4)
