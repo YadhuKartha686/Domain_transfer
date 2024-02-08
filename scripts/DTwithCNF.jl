@@ -49,38 +49,38 @@ lr     = 1f-5
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 5; K = 11; n_hidden = 512 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 5; K = 10; n_hidden = 512 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
 
 model = Chain(
   # First convolutional layer
-  Conv((7, 7), 1=>32, relu, pad=(3,3), stride=(2,2)),
-  MaxPool((3,3), stride=(2,2)), # Aggressive pooling to reduce dimensions
+  Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
+  x -> maxpool(x, (2,2)), # Aggressive pooling to reduce dimensions
   
   # Second convolutional layer
-  Conv((5, 5), 32=>64, relu, pad=(2,2), stride=(2,2)),
-  MaxPool((3,3), stride=(2,2)), # Further reduction
+  Conv((5, 5), 32=>64, relu, pad=(2,2), stride=1),
+  x -> maxpool(x, (2,2)), # Further reduction
   
   # Third convolutional layer
-  Conv((5, 5), 64=>64, relu, pad=2),
-  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+  Conv((5, 5), 64=>64, relu, pad=1),
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
   # Fourth convolutional layer
   Conv((3, 3), 64=>64, relu, pad=1),
-  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
 
   Conv((3, 3), 64=>64, relu, pad=1),
-  MaxPool((2,2), stride=(2,2)), # Final pooling to reduce to a very low dimension
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
   
   # Flatten the output of the last convolutional layer before passing it to the dense layer
   Flux.flatten,
   
   # Fully connected layer
-  Dense(64, 64, relu),
+  Dense(3136, 512, relu),
   
   # Output layer for binary classification
-  Dense(64, 1),
+  Dense(512, 1),
   sigmoid
 )
 
@@ -93,8 +93,8 @@ function Dissloss(real_output, fake_output)
   return 0.5f0*(real_loss + fake_loss)
 end
 
-function Genloss(fake_output,x,y) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 0*Flux.mse(y|> device,x)
+function Genloss(fake_output) 
+  return mean(Flux.binarycrossentropy.(fake_output, 1f0))
 end
 
 
@@ -180,16 +180,14 @@ for e=1:n_epochs# epoch loop
         
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
 
           gs = cat(gsB,gsA,dims=4)
           generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
           generator.backward(Zx / imgs*2, Zx, Zy;)
-          # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
-          # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
-
+   
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
           end
