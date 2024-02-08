@@ -89,8 +89,8 @@ function Dissloss(real_output, fake_output)
   return 0.5f0*(real_loss + fake_loss)
 end
 
-function Genloss(fake_output,x,y) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0)) + 0*Flux.mse(y|> device,x)
+function Genloss(fake_output) 
+  return mean(Flux.binarycrossentropy.(fake_output, 1f0))
 end
 
 
@@ -182,8 +182,8 @@ for e=1:n_epochs# epoch loop
           # end
           ## minlog (1-D(fakeimg)) <--> max log(D(fake)) + norm(Z)
                     
-          gsA = gradient(x -> Genloss(discriminatorA(x|> device),x,XA), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
-          gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
+          gsA = gradient(x -> Genloss(discriminatorA(x|> device)), fake_imagesAfromB)[1]  #### getting gradients wrt A fake ####
+          gsB = gradient(x -> Genloss(discriminatorB(x|> device)), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
 
           gs = cat(gsB,gsA,dims=4)
