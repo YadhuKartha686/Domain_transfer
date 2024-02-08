@@ -45,7 +45,7 @@ end
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 5f-5
+lr     = 1f-5
 low = 0.5f0
 
 # Architecture parametrs
