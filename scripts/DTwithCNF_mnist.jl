@@ -205,8 +205,8 @@ for e=1:n_epochs# epoch loop
 
           lossAd = Dissloss(real_outputA, fake_outputA)  #### log(D(real)) + log(1 - D(fake)) ####
           lossBd = Dissloss(real_outputB, fake_outputB)  #### log(D(real)) + log(1 - D(fake)) ####
-          lossA = Genloss(fake_outputA,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
-          lossB = Genloss(fake_outputB,fake_imagesAfromB,fake_imagesAfromB)  #### log(1 - D(fake)) + mse ####
+          lossA = Genloss(fake_outputA)  #### log(1 - D(fake)) + mse ####
+          lossB = Genloss(fake_outputB)  #### log(1 - D(fake)) + mse ####
           f_all = norm(Zx)^2
 
           loss = lossA + lossB #+ ml
