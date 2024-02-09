@@ -109,7 +109,7 @@ discriminatorB = gpu(model)
 
 clipnorm_val = 5f0
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
-lrd = 5f-6
+lrd = 1f-6
 optimizer_da = Flux.ADAM(lrd)
 optimizer_db = Flux.ADAM(lrd)
 genloss=[]
@@ -124,7 +124,7 @@ YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
 YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-15
+factor = 1f-19
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
