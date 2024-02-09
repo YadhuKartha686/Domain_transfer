@@ -49,7 +49,7 @@ lr     = 1f-5
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 3; K = 9; n_hidden = 64 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 5; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
@@ -126,7 +126,7 @@ YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-19
 
-n_epochs     = 1000
+n_epochs     = 250
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
