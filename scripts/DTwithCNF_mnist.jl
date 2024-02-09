@@ -370,7 +370,40 @@ for e=1:n_epochs# epoch loop
 
     fig.savefig("../plots/Shot_rec_df/number seven test $e.png")
     plt.close(fig)
+    if mod(e,10) == 0
+      Params = get_params(generator) |> cpu;
+      save_dict = @strdict e L K n_hidden lr
+      @tagsave(
+           "../plots/Shot_rec_df/"*savename(save_dict, "jld2"; digits=6),
+           save_dict;
+           safe=true
+      )
+    end
 end
 
 
 print("done training!!!")
+
+
+# function get_network(path)
+#   # test parameters
+#   batch_size = 32
+#   n_post_samples = 128
+#   device = gpu
+#   #load previous hyperparameters
+#   data_path = datadir("L_inifinity_norm_cruyff_training_30_July/" * path);
+#   bson_file = BSON.load(data_path);
+#   n_hidden = bson_file["n_hidden"];
+#   L = bson_file["L"];
+#   K = bson_file["K"];
+#   Params = bson_file["Params"];
+#   e = bson_file["e"];
+#   noise_lev_x = bson_file["noise_lev_x"];
+#   n_train = bson_file["n_train"];
+#   G = NetworkConditionalGlow(1, 1, n_hidden,  L, K; split_scales=true, activation=SigmoidLayer(low=0.5f0,high=1.0f0));
+#   p_curr = get_params(G);
+#   for p in 1:length(p_curr)
+#   p_curr[p].data = Params[p].data
+#   end
+#   return G
+# end
