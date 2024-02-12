@@ -124,7 +124,33 @@ YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
 YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-19
+factor = 1f0
+
+function z_shape_simple(G, ZX_test)
+  Z_save, ZX = split_states(ZX_test[:], G.Z_dims)
+  for i=G.L:-1:1
+      if i < G.L
+          ZX = tensor_cat(ZX, Z_save[i])
+      end
+      ZX = G.squeezer.inverse(ZX) 
+  end
+  ZX
+end
+
+function z_shape_simple_forward(G, X)
+  G.split_scales && (Z_save = array_of_array(X, G.L-1))
+  for i=1:G.L
+      (G.split_scales) && (X = G.squeezer.forward(X))
+      if G.split_scales && i < G.L    # don't split after last iteration
+          X, Z = tensor_split(X)
+          Z_save[i] = Z
+          G.Z_dims[i] = collect(size(Z))
+      end
+  end
+  G.split_scales && (X = cat_states(Z_save, X))
+  return X
+end
+
 
 n_epochs     = 250
 for e=1:n_epochs# epoch loop
@@ -144,6 +170,8 @@ for e=1:n_epochs# epoch loop
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
+          Zx = z_shape_simple(generator,Zx)
+          Zy = z_shape_simple(generator,Zy)
 
           ZyA = Zy[:,:,:,1:imgs]
           ZyB = Zy[:,:,:,imgs+1:end]
@@ -153,6 +181,13 @@ for e=1:n_epochs# epoch loop
 
           Zy1 = cat(ZyB,ZyA,dims=4)
 
+          Zx = z_shape_simple_forward(generator,Zx)
+          Zy = z_shape_simple_forward(generator,Zy)
+          Zy1 = z_shape_simple_forward(generator,Zy1)
+          
+          Zx = reshape(Zx,(nx,ny,1,imgs*2))
+          Zy = reshape(Zy,(8,8,1024,imgs*2))
+          Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
  

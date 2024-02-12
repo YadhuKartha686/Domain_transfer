@@ -46,3 +46,6 @@ sbatch test-julia_slurm.sh
 ```
 
 scp -r Domain_transfer/ ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/
+
+
+scp -r ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/test Domain_transfer/plots 
