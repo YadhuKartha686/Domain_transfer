@@ -42,6 +42,7 @@ end
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
 lr     = 1f-5
+lr_step   = 10
 low = 0.5f0
 
 # Architecture parametrs
@@ -115,7 +116,8 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 clipnorm_val = 5f0
-optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
+
+# optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 lrd = 1f-6
 optimizer_da = Flux.ADAM(lrd)
 optimizer_db = Flux.ADAM(lrd)
@@ -130,6 +132,7 @@ n_batches = cld(n_train,imgs)
 YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
 YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 
+optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lr))
 lossnrm      = []; logdet_train = []; 
 factor = 1f0
 
