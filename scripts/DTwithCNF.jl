@@ -170,15 +170,15 @@ for e=1:n_epochs# epoch loop
           ############# Loading domain A data ############## 
           
           XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
-          XB = train_xB[:, :, :, idx_eA[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
+          XB = train_xB[:, :, :, idx_eB[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
 
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
-          # Zx = z_shape_simple(G,Zx)
-          # Zy = z_shape_simple(G,Zy)
+          Zx = z_shape_simple(generator.cond_net,Zx)
+          Zy = z_shape_simple(generator.cond_net,Zy)
 
           ZyA = Zy[:,:,:,1:imgs]
           ZyB = Zy[:,:,:,imgs+1:end]
@@ -188,13 +188,13 @@ for e=1:n_epochs# epoch loop
 
           Zy1 = cat(ZyB,ZyA,dims=4)
 
-          # Zx = z_shape_simple_forward(generator,Zx)
-          # Zy = z_shape_simple_forward(generator,Zy)
-          # Zy1 = z_shape_simple_forward(generator,Zy1)
+          Zx = z_shape_simple_forward(generator.cond_net,Zx)
+          Zy = z_shape_simple_forward(generator.cond_net,Zy)
+          Zy1 = z_shape_simple_forward(generator.cond_net,Zy1)
           
-          # Zx = reshape(Zx,(nx,ny,1,imgs*2))
-          # Zy = reshape(Zy,(8,8,1024,imgs*2))
-          # Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
+          Zx = reshape(Zx,(nx,ny,1,imgs*2))
+          Zy = reshape(Zy,(8,8,1024,imgs*2))
+          Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
  
