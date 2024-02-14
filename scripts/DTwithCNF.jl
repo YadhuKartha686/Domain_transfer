@@ -41,11 +41,11 @@ end
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 5f-6
+lr     = 1f-5
 low = 0.5f0
 
 # Architecture parametrs
-chan_x = 1; chan_y = 1; L = 5; K = 10; n_hidden = 128 # Number of hidden channels in convolutional residual blocks
+chan_x = 1; chan_y = 1; L = 5; K = 10; n_hidden = 512 # Number of hidden channels in convolutional residual blocks
 
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
@@ -83,7 +83,7 @@ model = Chain(
 # Summary Network
 sum_net = true
 h2      = nothing
-unet_lev = 2
+unet_lev = 3
 n_c = 1
 n_in = 1
 if sum_net
