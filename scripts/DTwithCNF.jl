@@ -38,8 +38,6 @@ for i=1:900
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,900+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-
-
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
