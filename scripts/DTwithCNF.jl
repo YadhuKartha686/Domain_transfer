@@ -17,6 +17,7 @@ using MLUtils
 using StatsBase
 using Distributions
 using Images
+using UNet
 
 #### DATA LOADING #####
 nx,ny = 256, 256
@@ -30,14 +31,11 @@ train_y = jldopen(data_path, "r")["Y"]
 train_xA = zeros(Float32, nx, ny, 1,900)
 train_xB = zeros(Float32, nx, ny, 1,900)
 
-
-indices_of_A = findall(x -> x == 0.0, train_y[:,1])
-indices_of_B = findall(x -> x == 1.0, train_y[:,1])
   
 for i=1:900
     sigma = 1.0
-    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_A[i]],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
-    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,indices_of_B[i]],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,900+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
 
@@ -45,7 +43,7 @@ end
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-5
+lr     = 5f-6
 low = 0.5f0
 
 # Architecture parametrs
@@ -84,6 +82,17 @@ model = Chain(
   sigmoid
 )
 
+# Summary Network
+sum_net = true
+h2      = nothing
+unet_lev = 2
+n_c = 1
+n_in = 1
+if sum_net
+    h2 = Chain(Unet(n_c,n_in,unet_lev))
+    trainmode!(h2, true)
+    h2 = FluxBlock(h2)|> device
+end
 
 
 # Define the loss functions
@@ -99,7 +108,7 @@ end
 
 
 # Initialize networks and optimizers
-generator = G |> gpu
+generator = SummarizedNet(G, h2) |> gpu
 discriminatorA = gpu(model)
 discriminatorB = gpu(model)
 
@@ -162,16 +171,16 @@ for e=1:n_epochs# epoch loop
         @time begin
           ############# Loading domain A data ############## 
           
-          XA = train_xA[:, :, :, idx_eA[:,b]]
-          XB = train_xB[:, :, :, idx_eA[:,b]]
+          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
+          XB = train_xB[:, :, :, idx_eA[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
 
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
-          Zx = z_shape_simple(generator,Zx)
-          Zy = z_shape_simple(generator,Zy)
+          # Zx = z_shape_simple(G,Zx)
+          # Zy = z_shape_simple(G,Zy)
 
           ZyA = Zy[:,:,:,1:imgs]
           ZyB = Zy[:,:,:,imgs+1:end]
@@ -181,13 +190,13 @@ for e=1:n_epochs# epoch loop
 
           Zy1 = cat(ZyB,ZyA,dims=4)
 
-          Zx = z_shape_simple_forward(generator,Zx)
-          Zy = z_shape_simple_forward(generator,Zy)
-          Zy1 = z_shape_simple_forward(generator,Zy1)
+          # Zx = z_shape_simple_forward(generator,Zx)
+          # Zy = z_shape_simple_forward(generator,Zy)
+          # Zy1 = z_shape_simple_forward(generator,Zy1)
           
-          Zx = reshape(Zx,(nx,ny,1,imgs*2))
-          Zy = reshape(Zy,(8,8,1024,imgs*2))
-          Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
+          # Zx = reshape(Zx,(nx,ny,1,imgs*2))
+          # Zy = reshape(Zy,(8,8,1024,imgs*2))
+          # Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
  
@@ -220,8 +229,9 @@ for e=1:n_epochs# epoch loop
           
 
           gs = cat(gsB,gsA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
-          generator.backward(Zx / imgs*2, Zx, Zy;)
+     
+          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;Y_save=Zy1|>device) #### updating grads wrt image ####
+          generator.backward(Zx / imgs*2, Zx, Zy;Y_save=Y|>device)
    
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
@@ -318,6 +328,8 @@ for e=1:n_epochs# epoch loop
     Y = cat(YA, YB,dims=4)
     Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
+    # Zx = z_shape_simple(generator,Zx)
+    # Zy = z_shape_simple(generator,Zy)
 
               ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -325,6 +337,14 @@ for e=1:n_epochs# epoch loop
     ZyB = Zy[:,:,:,imgs+1:end]
 
     Zy = cat(ZyB,ZyA,dims=4)
+
+    # Zx = z_shape_simple_forward(generator,Zx)
+    # Zy = z_shape_simple_forward(generator,Zy)
+
+          
+    # Zx = reshape(Zx,(nx,ny,1,imgs*2))
+    # Zy = reshape(Zy,(8,8,1024,imgs*2))
+
 
     fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
 

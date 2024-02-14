@@ -43,6 +43,8 @@ for sbatch
 use test-julia_slurm.sh file and set parametes
 sbatch test-julia_slurm.sh
 
+salloc -A ykartha6 -t 20:00:00 --cpus-per-task=4 --mem-per-cpu=4G -p cpu  srun --pty julia
+
 ```
 
 scp -r Domain_transfer/ ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/
