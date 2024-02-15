@@ -18,7 +18,7 @@ using BSON
 using StatsBase
 using Distributions
 using Images
-
+using UNet
 #### DATA LOADING #####
 using MLDatasets
 
@@ -93,9 +93,18 @@ function Genloss(fake_output)
   return mean(Flux.binarycrossentropy.(fake_output, 1f0))
 end
 
-
+sum_net = true
+h2      = nothing
+unet_lev = 2
+n_c = 1
+n_in = 1
+if sum_net
+    h2 = Chain(Unet(n_c,n_in,unet_lev))
+    trainmode!(h2, true)
+    h2 = FluxBlock(h2)|> device
+end
 # Initialize networks and optimizers
-generator = G |> gpu
+generator = SummarizedNet(G, h2) |> gpu
 discriminatorA = gpu(model)
 discriminatorB = gpu(model)
 
@@ -119,7 +128,7 @@ YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
 lossnrm      = []; logdet_train = []; 
-factor = 1f-15
+factor = 1f0
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
@@ -130,13 +139,9 @@ for e=1:n_epochs# epoch loop
   for b = 1:n_batches # batch loop
         @time begin
           ############# Loading domain A data ############## 
-          idx = reshape(randperm(imgs*2), imgs*2, 1)
-          inverse_idx = zeros(Int,length(idx))
-          for i in 1:length(idx)
-              inverse_idx[idx[i]] = i
-          end
-          XA = train_xA[:, :, :, idx_eA[:,b]];
-          XB = train_xB[:, :, :, idx_eA[:,b]];  
+          
+          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
+          XB = train_xB[:, :, :, idx_eB[:,b]] + randn(Float32,(nx,ny,1,imgs)) ./1f5
           X = cat(XA, XB,dims=4)
           Y = cat(YA, YB,dims=4)
      
@@ -187,8 +192,8 @@ for e=1:n_epochs# epoch loop
           
 
           gs = cat(gsB,gsA,dims=4)
-          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
-          generator.backward(Zx / imgs*2, Zx, Zy;)
+          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;Y_save=Zy1|>device) #### updating grads wrt image ####
+          generator.backward(Zx / imgs*2, Zx, Zy;Y_save=Y|>device)
           # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
           # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
 
