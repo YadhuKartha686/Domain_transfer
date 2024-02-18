@@ -28,14 +28,14 @@ data_path= "../data/CompassShotmid.jld2"
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
   
-train_xA = zeros(Float32, nx, ny, 1,900)
-train_xB = zeros(Float32, nx, ny, 1,900)
+train_xA = zeros(Float32, nx, ny, 1,2160)
+train_xB = zeros(Float32, nx, ny, 1,2160)
 
   
-for i=1:900
+for i=1:2160
     sigma = 1.0
     train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
-    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,900+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
 # Define the generator and discriminator networks
@@ -84,7 +84,7 @@ model = Chain(
 # Summary Network
 sum_net = true
 h2      = nothing
-unet_lev = 3
+unet_lev = 4
 n_c = 1
 n_in = 1
 if sum_net
@@ -126,8 +126,8 @@ dissloss = []
 mseofimb=[]
 mseofima=[]
 imgs = 4
-n_train = 800
-n_test = 805
+n_train = 2000
+n_test = 2005
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
 YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
@@ -280,7 +280,7 @@ for e=1:n_epochs# epoch loop
         end
 
         if mod(e,5)==0 && mod(b,n_batches)==0
-          x = train_xA[:,:,:,801:end]
+          x = train_xA[:,:,:,2001:end]
           x .+= 0.001*randn(Float32, size(x))
           x = x |> gpu
           y = transpose(ones(Float32,100))|>gpu
@@ -290,7 +290,7 @@ for e=1:n_epochs# epoch loop
 
           println("l2norm of Da: ",correct_predictions_testa)
 
-          x = train_xB[:,:,:,801:end]
+          x = train_xB[:,:,:,2001:end]
           x .+= 0.001*randn(Float32, size(x))
           x = x |> gpu
           y = transpose(ones(Float32,100))|>gpu
