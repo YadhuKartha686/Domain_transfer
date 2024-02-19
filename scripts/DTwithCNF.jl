@@ -115,17 +115,17 @@ discriminatorB = gpu(model)
 # discriminatorA = model
 # discriminatorB = model
 
-clipnorm_val = 5f0
+clipnorm_val = 10f0
 
 # optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 lrd = 1f-6
-optimizer_da = Flux.ADAM(lrd)
-optimizer_db = Flux.ADAM(lrd)
+# optimizer_da = Flux.ADAM(lrd)
+# optimizer_db = Flux.ADAM(lrd)
 genloss=[]
 dissloss = []
 mseofimb=[]
 mseofima=[]
-imgs = 4
+imgs = 8
 n_train = 2000
 n_test = 2005
 n_batches = cld(n_train,imgs)
@@ -133,8 +133,10 @@ YA = ones(Float32,nx,ny,1,imgs) + randn(Float32,nx,ny,1,imgs) ./1000
 YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 
 optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lr))
+optimizer_da = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
+optimizer_db = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 lossnrm      = []; logdet_train = []; 
-factor = 1f0
+factor = 1f-3
 
 function z_shape_simple(G, ZX_test)
   Z_save, ZX = split_states(ZX_test[:], G.Z_dims)
@@ -329,8 +331,8 @@ for e=1:n_epochs# epoch loop
     Y = cat(YA, YB,dims=4)
     Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
-    # Zx = z_shape_simple(generator,Zx)
-    # Zy = z_shape_simple(generator,Zy)
+    Zx = z_shape_simple(generator.cond_net,Zx)
+    Zy = z_shape_simple(generator.cond_net,Zy)
 
               ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -339,12 +341,12 @@ for e=1:n_epochs# epoch loop
 
     Zy = cat(ZyB,ZyA,dims=4)
 
-    # Zx = z_shape_simple_forward(generator,Zx)
-    # Zy = z_shape_simple_forward(generator,Zy)
+    Zx = z_shape_simple_forward(generator.cond_net,Zx)
+    Zy = z_shape_simple_forward(generator.cond_net,Zy)
 
           
-    # Zx = reshape(Zx,(nx,ny,1,imgs*2))
-    # Zy = reshape(Zy,(8,8,1024,imgs*2))
+    Zx = reshape(Zx,(nx,ny,1,imgs*2))
+    Zy = reshape(Zy,(8,8,1024,imgs*2))
 
 
     fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
