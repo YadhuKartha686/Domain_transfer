@@ -283,20 +283,20 @@ for e=1:n_epochs# epoch loop
           x = train_xA[:,:,:,2001:end]
           x .+= 0.001*randn(Float32, size(x))
           x = x |> gpu
-          y = transpose(ones(Float32,100))|>gpu
+          y = transpose(ones(Float32,160))|>gpu
           # Calculate accuracy for this batch
           y_pred = discriminatorA(x)
-          correct_predictions_testa = sum(abs.(y_pred-y))/100
+          correct_predictions_testa = sum(abs.(y_pred-y))/160
 
           println("l2norm of Da: ",correct_predictions_testa)
 
           x = train_xB[:,:,:,2001:end]
           x .+= 0.001*randn(Float32, size(x))
           x = x |> gpu
-          y = transpose(ones(Float32,100))|>gpu
+          y = transpose(ones(Float32,160))|>gpu
           # Calculate accuracy for this batch
           y_pred = discriminatorB(x)
-          correct_predictions_testb = sum(abs.(y_pred-y))/100
+          correct_predictions_testb = sum(abs.(y_pred-y))/160
 
           println("l2norm of Db: ",correct_predictions_testb)
        end
