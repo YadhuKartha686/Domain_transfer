@@ -121,7 +121,7 @@ YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 lossnrm      = []; logdet_train = []; 
 factor = 1f-15
 
-n_epochs     = 1000
+n_epochs     = 5000
 for e=1:n_epochs# epoch loop
   epoch_loss_diss=0.0
   epoch_loss_gen=0.0
