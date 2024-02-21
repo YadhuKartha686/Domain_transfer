@@ -105,21 +105,26 @@ discriminatorB = gpu(model)
 
 opt_adam = "adam"
 clipnorm_val = 5f0
-optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
+# optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 lrd = 1f-5
-optimizer_da = Flux.ADAM(lrd)
-optimizer_db = Flux.ADAM(lrd)
+# optimizer_da = Flux.ADAM(lrd)
+# optimizer_db = Flux.ADAM(lrd)
 genloss=[]
 dissloss = []
 imgs = 32
-n_train = 2048
+n_train = 1024
 n_test = 4500
 n_batches = cld(n_train,imgs)
 YA = ones(Float32,16,16,1,imgs) + randn(Float32,16,16,1,imgs) ./1000
 YB = ones(Float32,16,16,1,imgs) .*7 + randn(Float32,16,16,1,imgs) ./1000
 
+
+optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lr))
+optimizer_da = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
+optimizer_db = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
+
 lossnrm      = []; logdet_train = []; 
-factor = 1f-15
+factor = 1f0
 
 n_epochs     = 5000
 for e=1:n_epochs# epoch loop
@@ -185,9 +190,7 @@ for e=1:n_epochs# epoch loop
           gs = cat(gsB,gsA,dims=4)
           generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
           generator.backward(Zx / imgs*2, Zx, Zy;)
-          # generator.backward_inv(((gsA ./ factor)|>device) + ZxA/4, fake_imagesAfromB, invcall[:,:,:,5:8];) #### updating grads wrt A ####
-          # generator.backward_inv(((gsB ./ factor)|>device) + ZxB/4, fake_imagesBfromA, invcall[:,:,:,1:4];) #### updating grads wrt B ####
-
+        
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
           end
@@ -365,6 +368,19 @@ for e=1:n_epochs# epoch loop
 
 
     fig.savefig("../plots/Shot_rec_df/number seven test $e.png")
+    plt.close(fig)
+
+    fig = plt.figure(figsize=(15, 15))
+    ax1 = fig.add_subplot(3,2,1)
+    ax1.imshow(Zx[:,:,1,1],vmin = 0,vmax = 1)
+    ax1.title.set_text("latent space of digit 1 ")
+
+
+    ax2 = fig.add_subplot(3,2,2)
+    ax2.imshow(Zx[:,:,1,1+imgs]|>cpu,vmin = 0,vmax = 1)
+    ax2.title.set_text("latent space of digit 1  ")
+
+    fig.savefig("../plots/Shot_rec_df/latent test $e.png")
     plt.close(fig)
 end
 
