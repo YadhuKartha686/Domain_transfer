@@ -379,7 +379,7 @@ for e=1:n_epochs# epoch loop
 
     ax2 = fig.add_subplot(3,2,2)
     ax2.imshow(Zx[:,:,1,1+imgs]|>cpu,vmin = 0,vmax = 1)
-    ax2.title.set_text("latent space of digit 1  ")
+    ax2.title.set_text("latent space of digit 7  ")
 
     fig.savefig("../plots/Shot_rec_df/latent test $e.png")
     plt.close(fig)
