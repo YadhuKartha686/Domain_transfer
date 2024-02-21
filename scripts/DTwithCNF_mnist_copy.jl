@@ -372,7 +372,7 @@ for e=1:n_epochs# epoch loop
 
     fig = plt.figure(figsize=(15, 15))
     ax1 = fig.add_subplot(3,2,1)
-    ax1.imshow(Zx[:,:,1,1],vmin = 0,vmax = 1)
+    ax1.imshow(Zx[:,:,1,1]|>cpu,vmin = 0,vmax = 1)
     ax1.title.set_text("latent space of digit 1 ")
 
 
@@ -393,7 +393,7 @@ for e=1:n_epochs# epoch loop
            safe=true
       )
     end
-    
+
 end
 
 
