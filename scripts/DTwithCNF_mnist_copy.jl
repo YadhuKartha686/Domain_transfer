@@ -382,6 +382,18 @@ for e=1:n_epochs# epoch loop
 
     fig.savefig("../plots/Shot_rec_df/latent test $e.png")
     plt.close(fig)
+
+
+    if mod(e,10) == 0
+      Params = get_params(generator) |> cpu;
+      save_dict = @strdict e L K n_hidden lr
+      @tagsave(
+           "../plots/Shot_rec_df/"*savename(save_dict, "jld2"; digits=6),
+           save_dict;
+           safe=true
+      )
+    end
+    
 end
 
 
