@@ -107,6 +107,7 @@ opt_adam = "adam"
 clipnorm_val = 10f0
 # optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 lrd = 1f-5
+lr_step= 10
 # optimizer_da = Flux.ADAM(lrd)
 # optimizer_db = Flux.ADAM(lrd)
 genloss=[]
