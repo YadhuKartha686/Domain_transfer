@@ -137,10 +137,10 @@ for e=1:n_epochs# epoch loop
         @time begin
           ############# Loading domain A data ############## 
     
-          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,16,16,1,imgs) ./10000
-          XB = train_xB[:, :, :, idx_eB[:,b]] + randn(Float32,16,16,1,imgs) ./10000
-          X = cat(XA, XB,dims=4)
-          Y = cat(YA, YB,dims=4)
+          XA = train_xA[:, :, :, idx_eA[:,b]] + randn(Float32,16,16,1,imgs) ./10000 # load in domain A
+          XB = train_xB[:, :, :, idx_eB[:,b]] + randn(Float32,16,16,1,imgs) ./10000 # load in domain B
+          X = cat(XA, XB,dims=4) # cat domains
+          Y = cat(YA, YB,dims=4) # cat condtions
      
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
           
@@ -148,21 +148,22 @@ for e=1:n_epochs# epoch loop
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
 
-          ZyA = Zy[:,:,:,1:imgs]
-          ZyB = Zy[:,:,:,imgs+1:end]
+          ZyA = Zy[:,:,:,1:imgs]          # [A,A,A,_,_,_]
+          ZyB = Zy[:,:,:,imgs+1:end]      # [_,_,_,B,B,B]
 
-          ZxA = Zx[:,:,:,1:imgs]
-          ZxB = Zx[:,:,:,imgs+1:end]
+          ZxA = Zx[:,:,:,1:imgs]          # [A,A,A,_,_,_]
+          ZxB = Zx[:,:,:,imgs+1:end]      # [_,_,_,B,B,B]
+          
 
-          Zy1 = cat(ZyB,ZyA,dims=4)
+          Zy1 = cat(ZyB,ZyA,dims=4)       #[B,B,B,A,A,A]
 
      
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
   
-          ####### getting fake images from respective domain ########
+          ####### getting fake images from respective domain ######## #[BfA,BfA,BfA,AfB,AfB,AfB]
 
-          fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
+          fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]  
           fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
           ####### discrim training ########
@@ -188,9 +189,9 @@ for e=1:n_epochs# epoch loop
           gsB = gradient(x -> Genloss(discriminatorB(x|> device),x,XB), fake_imagesBfromA)[1]  #### getting gradients wrt B fake ####
           
 
-          gs = cat(gsB,gsA,dims=4)
+          gs = cat(gsB,gsA,dims=4) # [B,B,B,A,A,A]
           generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
-          generator.backward(Zx / imgs*2, Zx, Zy;)
+          generator.backward(Zx / imgs*2, Zx, Zy;) #[A,A,A,B,B,B]
         
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
