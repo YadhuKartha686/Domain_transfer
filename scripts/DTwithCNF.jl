@@ -20,7 +20,7 @@ using Images
 using UNet
 
 #### DATA LOADING #####
-nx,ny = 256, 256
+nx,ny = 128, 128
 N = nx*ny;
 
 data_path= "../data/CompassShotmid.jld2"
@@ -61,10 +61,10 @@ model = Chain(
   x -> maxpool(x, (2,2)), # Further reduction
   
   # Third convolutional layer
-  Conv((5, 5), 64=>64, relu, pad=1),
+  Conv((5, 5), 64=>128, relu, pad=1),
   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
   # Fourth convolutional layer
-  Conv((3, 3), 64=>64, relu, pad=1),
+  Conv((3, 3), 128=>64, relu, pad=1),
   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
 
   Conv((3, 3), 64=>64, relu, pad=1),
@@ -74,7 +74,7 @@ model = Chain(
   Flux.flatten,
   
   # Fully connected layer
-  Dense(3136, 512, relu),
+  Dense(576, 512, relu),
   
   # Output layer for binary classification
   Dense(512, 1),
@@ -107,7 +107,8 @@ end
 
 
 # Initialize networks and optimizers
-generator = SummarizedNet(G, h2) |> gpu
+# generator = SummarizedNet(G, h2) |> gpu
+generator = G |> gpu
 discriminatorA = gpu(model)
 discriminatorB = gpu(model)
 
@@ -136,7 +137,7 @@ optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batche
 optimizer_da = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 optimizer_db = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 lossnrm      = []; logdet_train = []; 
-factor = 1f-3
+factor = 1f0
 
 function z_shape_simple(G, ZX_test)
   Z_save, ZX = split_states(ZX_test[:], G.Z_dims)
@@ -182,8 +183,8 @@ for e=1:n_epochs# epoch loop
           Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
           ######## interchanging conditions to get domain transferred images during inverse call #########
-          Zx = z_shape_simple(generator.cond_net,Zx)
-          Zy = z_shape_simple(generator.cond_net,Zy)
+          # Zx = z_shape_simple(generator.cond_net,Zx)
+          # Zy = z_shape_simple(generator.cond_net,Zy)
 
           ZyA = Zy[:,:,:,1:imgs]
           ZyB = Zy[:,:,:,imgs+1:end]
@@ -193,13 +194,13 @@ for e=1:n_epochs# epoch loop
 
           Zy1 = cat(ZyB,ZyA,dims=4)
 
-          Zx = z_shape_simple_forward(generator.cond_net,Zx)
-          Zy = z_shape_simple_forward(generator.cond_net,Zy)
-          Zy1 = z_shape_simple_forward(generator.cond_net,Zy1)
+          # Zx = z_shape_simple_forward(generator.cond_net,Zx)
+          # Zy = z_shape_simple_forward(generator.cond_net,Zy)
+          # Zy1 = z_shape_simple_forward(generator.cond_net,Zy1)
           
-          Zx = reshape(Zx,(nx,ny,1,imgs*2))
-          Zy = reshape(Zy,(8,8,1024,imgs*2))
-          Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
+          # Zx = reshape(Zx,(nx,ny,1,imgs*2))
+          # Zy = reshape(Zy,(8,8,1024,imgs*2))
+          # Zy1 = reshape(Zy1,(8,8,1024,imgs*2))
 
           fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating images #######
  
@@ -233,8 +234,11 @@ for e=1:n_epochs# epoch loop
 
           gs = cat(gsB,gsA,dims=4)
      
-          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;Y_save=Zy1|>device) #### updating grads wrt image ####
-          generator.backward(Zx / imgs*2, Zx, Zy;Y_save=Y|>device)
+          generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;) #### updating grads wrt image ####
+          generator.backward(Zx / imgs*2, Zx, Zy;)
+
+          # generator.backward_inv(((gs ./ factor)|>device), fake_images, invcall;Y_save=Zy1|>device) #### updating grads wrt image ####
+          # generator.backward(Zx / imgs*2, Zx, Zy;Y_save=Y|>device)
    
           for p in get_params(generator)
               Flux.update!(optimizer_g,p.data,p.grad)
@@ -331,8 +335,8 @@ for e=1:n_epochs# epoch loop
     Y = cat(YA, YB,dims=4)
     Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
 
-    Zx = z_shape_simple(generator.cond_net,Zx)
-    Zy = z_shape_simple(generator.cond_net,Zy)
+    # Zx = z_shape_simple(generator.cond_net,Zx)
+    # Zy = z_shape_simple(generator.cond_net,Zy)
 
               ######## interchanging conditions to get domain transferred images during inverse call #########
 
@@ -341,12 +345,12 @@ for e=1:n_epochs# epoch loop
 
     Zy = cat(ZyB,ZyA,dims=4)
 
-    Zx = z_shape_simple_forward(generator.cond_net,Zx)
-    Zy = z_shape_simple_forward(generator.cond_net,Zy)
+    # Zx = z_shape_simple_forward(generator.cond_net,Zx)
+    # Zy = z_shape_simple_forward(generator.cond_net,Zy)
 
           
-    Zx = reshape(Zx,(nx,ny,1,imgs*2))
-    Zy = reshape(Zy,(8,8,1024,imgs*2))
+    # Zx = reshape(Zx,(nx,ny,1,imgs*2))
+    # Zy = reshape(Zy,(8,8,1024,imgs*2))
 
 
     fake_images,invcall = generator.inverse(Zx|>device,Zy)  ###### generating images #######
@@ -371,51 +375,51 @@ for e=1:n_epochs# epoch loop
     plt.savefig("../plots/Shot_rec_df/vel data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred1_$e.png")
     plt.close()
 
 
 
-    plot_sdata(XB[:,:,1,2]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test2.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,2]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel+den from vel 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred2_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,2]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test2.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,2]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred2_$e.png")
     plt.close()
 
 
 
-    plot_sdata(XB[:,:,1,3]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test3.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,3]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel+den from vel 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred3_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,3]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test3.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,3]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred3_$e.png")
     plt.close()
