@@ -360,17 +360,17 @@ for e=1:n_epochs# epoch loop
     fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
     fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
 
-    plot_sdata(XB[:,:,1,1]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel+den from vel 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred1_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,1]|>cpu,(7.03,2.488),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test1.png")
     plt.close()
