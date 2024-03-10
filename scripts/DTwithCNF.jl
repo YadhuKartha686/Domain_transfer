@@ -137,7 +137,7 @@ optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batche
 optimizer_da = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 optimizer_db = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 lossnrm      = []; logdet_train = []; 
-factor = 1f-1
+factor = 1f0
 
 function z_shape_simple(G, ZX_test)
   Z_save, ZX = split_states(ZX_test[:], G.Z_dims)
