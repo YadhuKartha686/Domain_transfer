@@ -117,7 +117,6 @@ discriminatorB = gpu(model)
 # discriminatorB = model
 
 clipnorm_val = 10f0
-
 # optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
 lrd = 1f-6
 # optimizer_da = Flux.ADAM(lrd)
