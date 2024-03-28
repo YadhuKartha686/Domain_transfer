@@ -452,22 +452,22 @@ end
 print("done training!!!")
 
 
-function get_network(path)
-  # test parameters
-  batch_size = 2
-  n_post_samples = 128
-  device = gpu
-  #load previous hyperparameters
-  bson_file = JLD2.load(path);
-  n_hidden = bson_file["n_hidden"];
-  L = bson_file["L"];
-  K = bson_file["K"];
-  Params = bson_file["Params"];
-  e = bson_file["e"];
-  G = NetworkConditionalGlow(1, 1, n_hidden,  L, K; split_scales=true, activation=SigmoidLayer(low=0.5f0,high=1.0f0));
-  p_curr = get_params(G);
-  for p in 1:length(p_curr)
-  p_curr[p].data = Params[p].data
-  end
-  return G
-end
+# function get_network(path)
+#   # test parameters
+#   batch_size = 2
+#   n_post_samples = 128
+#   device = gpu
+#   #load previous hyperparameters
+#   bson_file = JLD2.load(path);
+#   n_hidden = bson_file["n_hidden"];
+#   L = bson_file["L"];
+#   K = bson_file["K"];
+#   Params = bson_file["Params"];
+#   e = bson_file["e"];
+#   G = NetworkConditionalGlow(1, 1, n_hidden,  L, K; split_scales=true, activation=SigmoidLayer(low=0.5f0,high=1.0f0));
+#   p_curr = get_params(G);
+#   for p in 1:length(p_curr)
+#   p_curr[p].data = Params[p].data
+#   end
+#   return G
+# end
