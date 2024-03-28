@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name=CNFDT_test
+#SBATCH --job-name=elsDT_test
 #SBATCH --output=outputdt_els.txt
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=16G
