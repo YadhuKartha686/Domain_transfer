@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=CNFDT_test
-#SBATCH --output=outputdt_els.txt
+#SBATCH --output=outputdt.txt
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=16G
 #SBATCH --time=150:00:00
@@ -9,4 +9,4 @@
 
 module load Julia/1.8/5
 
-srun julia DTwithCNF_els.jl
+srun julia DTwithCNF.jl
