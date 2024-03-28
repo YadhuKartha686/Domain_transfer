@@ -47,7 +47,7 @@ salloc -A ykartha6 -t 20:00:00 --cpus-per-task=4 --mem-per-cpu=4G -p cpu  srun -
 
 ```
 
-scp -r Domain_transfer/data/CompassShotmid.jld2 ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/Domain_transfer/data/CompassShotmid.jld2
+scp Domain_transfer/data/CompassShotmid.jld2 ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/Domain_transfer/data/CompassShotmid.jld2
 
 
 scp -r ykartha6@cruyff.cc.gatech.edu:/nethome/ykartha6/test Domain_transfer/plots 
