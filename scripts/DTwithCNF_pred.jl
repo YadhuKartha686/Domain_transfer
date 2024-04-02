@@ -31,17 +31,17 @@ train_y = jldopen(data_path, "r")["Y"]
   
 train_xA = zeros(Float32, nx, ny, 1,8)
 train_xB = zeros(Float32, nx, ny, 1,8)
-
+img=2005
   
 for i=1:8
     sigma = 1.0
-    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
-    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,img+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+img+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
 # Define the generator and discriminator networks
 
-path = "/home/ykartha6/juliacode/Domain_transfer/Bestresults/K=10_L=3_e=440_lr=1e-5_n_hidden=512.jld2"
+path = "/home/ykartha6/juliacode/Domain_transfer/Bestresults/K=10_L=3_e=350_lr=1e-5_n_hidden=512.jld2"
 function get_network(path)
   # test parameters
   batch_size = 2
@@ -148,14 +148,15 @@ e=1
     plt.savefig("../plots/Shot_rec_df/vel+dendiff.png")
     plt.close()
 
-    plot_sdata((XB[:,:,1,1]|>cpu)-(XA[:,:,1,1]|>cpu).*5,(14.06,4.976),cbar=true)
-    plt.title.(" difference in true vel and domain_transfe_vel ")
-    plt.savefig("../plots/Shot_rec_df/veldiff_$e.png")
+    plot_sdata((XB[:,:,1,1]|>cpu)-(fake_imagesBfromAavg[:,:,1,1]|>cpu),(14.06,4.976),cbar=true)
+    plt.title.(" difference in fake velden and domain_transfe_velden ")
+    plt.savefig("../plots/Shot_rec_df/veldendiff_$e.png")
     plt.close()
 
     plt.plot((fake_imagesBfromAavg[20:end,64,1,1]|>cpu),label="veldenpredicted")
     plt.plot((XB[20:end,64,1,1]|>cpu),label="truevelden")
-    plt.title.(" difference in XA and XB trace ")
+    plt.plot((XA[20:end,64,1,1]|>cpu),label="truevel")
+    plt.title.(" difference in fakeB and XB trace ")
     plt.legend()
     plt.savefig("../plots/Shot_rec_df/veldifftrace$e.png")    
     plt.close()

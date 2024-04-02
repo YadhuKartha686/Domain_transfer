@@ -17,13 +17,33 @@ using Random; Random.seed!(1)
 
 
 model = Chain(
-    Conv((3, 3), 1=>64, relu;pad=1),
-    x -> maxpool(x, (2,2)),
-    Conv((3, 3), 64=>32, relu;pad=1),
-    x -> maxpool(x, (2,2)),
-    x -> reshape(x, :, size(x, 4)),
-    Dense(512, 1),
-    sigmoid
+  # First convolutional layer
+  Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
+  x -> maxpool(x, (2,2)), # Aggressive pooling to reduce dimensions
+  
+  # Second convolutional layer
+  Conv((5, 5), 32=>64, relu, pad=(2,2), stride=1),
+  x -> maxpool(x, (2,2)), # Further reduction
+  
+  # Third convolutional layer
+  Conv((5, 5), 64=>128, relu, pad=1),
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+  # Fourth convolutional layer
+  Conv((3, 3), 128=>64, relu, pad=1),
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+
+  Conv((3, 3), 64=>64, relu, pad=1),
+  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+  
+  # Flatten the output of the last convolutional layer before passing it to the dense layer
+  Flux.flatten,
+  
+  # Fully connected layer
+  Dense(576, 512, relu),
+  
+  # Output layer for binary classification
+  Dense(512, 1),
+  sigmoid
 )
 
 model = gpu(model)
@@ -37,52 +57,46 @@ loss(x, y) = mean(Flux.binarycrossentropy.(x, y))
 
 
 
-#Loading Data
-# Load in training data
-range_digA = [1]
-range_digB = [7]
-# load in training data
-train_x, train_y = MNIST.traindata()
+nx,ny = 128, 128
+N = nx*ny;
 
-# grab the digist to train on 
-inds = findall(x -> x in range_digA, train_y)
-train_yA = train_y[inds]
-train_xA = zeros(Float32,16,16,1,5923)
-for i=1:5851
-  train_xA[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
-  train_xA[:,:,1,i] = rotr90(train_xA[:,:,1,i],1)
-  # train_xA[:,:,:,i] = train_x[:,:,inds[i]]
+data_path= "../data/CompassShotmid_els.jld2"
+# datadir(CompassShot.jld2)
+train_X = jldopen(data_path, "r")["X"]
+train_y = jldopen(data_path, "r")["Y"]
+  
+train_xA = zeros(Float32, nx, ny, 1,2160)
+train_xB = zeros(Float32, nx, ny, 1,2160)
+
+  
+for i=1:2160
+    sigma = 1.0
+    train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
+    train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
-
-inds = findall(x -> x in range_digB, train_y)
-train_yB = train_y[inds]
-train_xB = zeros(Float32,16,16,1,5851)
-for i=1:5851
-
-  train_xB[:,:,:,i] = reverse(imresize(train_x[:,:,inds[i]],(16,16)),dims=1)
-  train_xB[:,:,1,i] = rotr90(train_xB[:,:,1,i],1)
-  # train_xB[:,:,:,i] = train_x[:,:,inds[i]] 
-end
-train_x = cat(train_xA, train_xB,dims=4)
-train_y = cat(zeros(5851), ones(5851),dims=1)
-num_classes = 2
 
 # Perform one-hot encoding using Flux.onehotbatch
 # train_x = normalize_images(train_x)
 # test_x = normalize_images(test_x)
-idx = reshape(randperm(11702), 11702, 1)
+idx = reshape(randperm(4000), 4000, 1)
 
-train_x = train_x[:,:,:,idx]
+train_x= zeros(Float32,(nx,ny,1,4000))
+train_y= zeros(Float32,4000)
+train_x[:,:,:,1:2000] = train_xA[:,:,:,1:2000]
+train_x[:,:,:,2001:4000] = train_xB[:,:,:,1:2000]
+train_y[2001:4000] .= 1.0
+
 train_y = train_y[idx]
-test_x = train_x[:,:,:,10048:10560]
-train_x = train_x[:,:,:,1:10048]
+train_x = train_x[:,:,:,idx]
 
-test_y = train_y[10048:10560]
-train_y = train_y[1:10048]
+test_x = train_x[:,:,:,3008:4000]
+train_x = train_x[:,:,:,1:3008]
+test_y = train_y[3008:4000]
+train_y = train_y[1:3008]
 
 n_train = size(train_x)[end]
 n_test = size(test_x)[end]-1
-batch_size=64
+batch_size=16
 n_batches = cld(n_train, batch_size) 
 n_batches_test = cld(n_test, batch_size) 
 # Training Loop
@@ -136,13 +150,13 @@ for e=1:n_epochs
     
     # Calculate average loss for the epoch
     avg_epoch_loss_test = epoch_loss_test / size(idx_e_test, 2)
-    accuracy_test = correct_predictions_test / 512
+    accuracy_test = correct_predictions_test / (n_batches_test*batch_size)
 
     push!(losslist_test, avg_epoch_loss_test)
     push!(accuracylist_test, accuracy_test)
 
     avg_epoch_loss = epoch_loss_test / size(idx_e, 2)
-    accuracy = correct_predictions / 10048
+    accuracy = correct_predictions / (n_batches*batch_size)
     push!(losslist, avg_epoch_loss)
     push!(accuracylist, accuracy)
     
