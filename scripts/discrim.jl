@@ -15,6 +15,54 @@ using Printf
 using MLUtils
 using Random; Random.seed!(1)
 
+# model = Chain(
+#   Conv((3, 3), 1 => 64, relu, pad=(1, 1), stride=(1, 1)), 
+#   BatchNorm(64),
+#   Conv((3, 3), 64 => 64, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(64),
+#   MaxPool((2,2)),
+
+#   Conv((3, 3), 64 => 128, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(128),
+#   Conv((3, 3), 128 => 128, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(128),
+#   MaxPool((2,2)),
+
+#   Conv((3, 3), 128 => 256, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(256),
+#   Conv((3, 3), 256 => 256, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(256),
+#   Conv((3, 3), 256 => 256, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(256),
+#   MaxPool((2,2)),
+
+#   Conv((3, 3), 256 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   Conv((3, 3), 512 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   Conv((3, 3), 512 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   MaxPool((2,2)),
+
+#   Conv((3, 3), 512 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   Conv((3, 3), 512 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   Conv((3, 3), 512 => 512, relu, pad=(1, 1), stride=(1, 1)),
+#   BatchNorm(512),
+#   MaxPool((2,2)),
+
+#   x -> reshape(x, :, size(x, 4)),
+#   Dense(8192, 4096, relu),  
+#   Dropout(0.5),
+
+#   Dense(4096, 2048, relu),
+#   Dropout(0.5),
+  
+#   Dense(2048, 1),
+#   sigmoid
+#   ) 
+
 
 model = Chain(
   # First convolutional layer
@@ -60,7 +108,7 @@ loss(x, y) = mean(Flux.binarycrossentropy.(x, y))
 nx,ny = 128, 128
 N = nx*ny;
 
-data_path= "../data/CompassShotmid_els.jld2"
+data_path= "../data/CompassShotmid.jld2"
 # datadir(CompassShot.jld2)
 train_X = jldopen(data_path, "r")["X"]
 train_y = jldopen(data_path, "r")["Y"]
@@ -74,6 +122,16 @@ for i=1:2160
     train_xA[:,:,:,i] = imresize(imfilter(train_X[:,:,i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
+
+mina=minimum(train_xA)
+minb=minimum(train_xB)
+
+maxa=maximum(train_xA)
+maxb=maximum(train_xB)
+
+train_xA = (train_xA .- mina)./(maxa-mina) 
+train_xB = (train_xB .- minb)./(maxb-minb) 
+
 
 # Perform one-hot encoding using Flux.onehotbatch
 # train_x = normalize_images(train_x)
@@ -113,10 +171,11 @@ for e=1:n_epochs
   epoch_loss_test=0.0
   correct_predictions=0.0
   correct_predictions_test=0.0
+  correct_predictions_testa=0.0
   idx_e = reshape(randperm(n_train), batch_size, n_batches)
     for b = 1:n_batches # batch loop
         x = train_x[:,:,:,idx_e[:,b]]
-        x .+= 0.001*randn(Float32, size(x))
+        # x .+= 0.001*randn(Float32, size(x))
         x = x |> gpu
         y = transpose(train_y[idx_e[:,b]])|>gpu
         grads = Flux.gradient(Flux.params(model)) do
@@ -137,7 +196,7 @@ for e=1:n_epochs
     idx_e_test = reshape(randperm(n_test), batch_size, n_batches_test)  
     for b = 1:n_batches_test # batch loop
       x = test_x[:,:,:,idx_e_test[:,b]]
-      x .+= 0.001*randn(Float32, size(x))
+      # x .+= 0.001*randn(Float32, size(x))
       x = x |> gpu
       y = transpose(test_y[idx_e_test[:,b]])|>gpu
       
@@ -146,12 +205,14 @@ for e=1:n_epochs
       y_pred = model(x)
       epoch_loss_test += loss(y_pred,y)
       correct_predictions_test += sum(round.(y_pred) .== y)
+      correct_predictions_testa += sum(abs.(y_pred-y))
+      
   end
     
     # Calculate average loss for the epoch
     avg_epoch_loss_test = epoch_loss_test / size(idx_e_test, 2)
     accuracy_test = correct_predictions_test / (n_batches_test*batch_size)
-
+    println("l2norm of Da: ",correct_predictions_testa/ (n_batches_test*batch_size))
     push!(losslist_test, avg_epoch_loss_test)
     push!(accuracylist_test, accuracy_test)
 

@@ -38,14 +38,14 @@ for i=1:2160
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-mina=minimum(train_xA)
-minb=minimum(train_xB)
+# mina=minimum(train_xA)
+# minb=minimum(train_xB)
 
-maxa=maximum(train_xA)
-maxb=maximum(train_xB)
+# maxa=maximum(train_xA)
+# maxb=maximum(train_xB)
 
-train_xA = (train_xA .- mina)./(maxa-mina) 
-train_xB = (train_xB .- minb)./(maxb-minb) 
+# train_xA = (train_xA .- mina)./(maxa-mina) 
+# train_xB = (train_xB .- minb)./(maxb-minb) 
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
@@ -369,11 +369,11 @@ for e=1:n_epochs# epoch loop
     fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
 
     
-    XB = (XB .*(maxb-minb)) .+ minb 
-    XA = (XA .*(maxa-mina)) .+ mina
+    # XB = (XB .*(maxb-minb)) .+ minb 
+    # XA = (XA .*(maxa-mina)) .+ mina
     
-    fake_imagesBfromAt = (fake_imagesBfromAt .*(maxb-minb)) .+ minb 
-    fake_imagesAfromBt = (fake_imagesAfromBt .*(maxa-mina)) .+ mina
+    # fake_imagesBfromAt = (fake_imagesBfromAt .*(maxb-minb)) .+ minb 
+    # fake_imagesAfromBt = (fake_imagesAfromBt .*(maxa-mina)) .+ mina
 
     plot_sdata(XB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel+den ")

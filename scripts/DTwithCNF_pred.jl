@@ -39,6 +39,15 @@ for i=1:8
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+img+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
+mina=minimum(train_xA)
+minb=minimum(train_xB)
+
+maxa=maximum(train_xA)
+maxb=maximum(train_xB)
+
+train_xA = (train_xA .- mina)./(maxa-mina) 
+train_xB = (train_xB .- minb)./(maxb-minb) 
+
 # Define the generator and discriminator networks
 
 path = "/home/ykartha6/juliacode/Domain_transfer/Bestresults/K=10_L=3_e=350_lr=1e-5_n_hidden=512.jld2"
@@ -119,6 +128,9 @@ end
 
 fake_imagesAfromBavg = fake_imagesAfromBavg./32
 fake_imagesBfromAavg = fake_imagesBfromAavg./32
+
+fake_imagesBfromAavg = (fake_imagesBfromAavg .*(maxb-minb)) .+ minb 
+fake_imagesAfromBavg = (fake_imagesAfromBavg .*(maxa-mina)) .+ mina
 
 e=1
 
