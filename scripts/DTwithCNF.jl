@@ -49,7 +49,7 @@ end
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
-lr     = 1f-5
+lr     = 5f-5
 lr_step   = 10
 low = 0.5f0
 
@@ -127,7 +127,7 @@ discriminatorB = gpu(model)
 clipnorm_val = 10f0
 
 # optimizer_g = Flux.Optimiser(ClipNorm(clipnorm_val), ADAM(lr))
-lrd = 1f-6
+lrd = 5f-6
 # optimizer_da = Flux.ADAM(lrd)
 # optimizer_db = Flux.ADAM(lrd)
 genloss=[]

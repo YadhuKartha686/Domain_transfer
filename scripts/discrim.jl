@@ -10,6 +10,7 @@ using MLDatasets
 using Statistics
 using Images 
 using JLD2
+using SlimPlotting
 using BSON: @save 
 using Printf 
 using MLUtils
@@ -132,7 +133,10 @@ maxb=maximum(train_xB)
 train_xA = (train_xA .- mina)./(maxa-mina) 
 train_xB = (train_xB .- minb)./(maxb-minb) 
 
-
+plot_sdata(train_xB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=1.0,cbar=true)
+    plt.title("data test vel+den ")
+    plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
+    plt.close()
 # Perform one-hot encoding using Flux.onehotbatch
 # train_x = normalize_images(train_x)
 # test_x = normalize_images(test_x)
