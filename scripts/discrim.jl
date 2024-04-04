@@ -124,16 +124,18 @@ for i=1:2160
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-mina=minimum(train_xA)
-minb=minimum(train_xB)
+# mina=minimum(train_xA)
+# minb=minimum(train_xB)
+train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
+train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
 
-maxa=maximum(train_xA)
-maxb=maximum(train_xB)
+maxa=maximum(abs.(train_xA))
+maxb=maximum(abs.(train_xB))
 
-train_xA = (train_xA .- mina)./(maxa-mina) 
-train_xB = (train_xB .- minb)./(maxb-minb) 
+train_xA = (train_xA )./(maxa) 
+train_xB = (train_xB )./(maxb) 
 
-plot_sdata(train_xB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=1.0,cbar=true)
+plot_sdata(train_xB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
     plt.close()

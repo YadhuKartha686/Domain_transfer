@@ -38,14 +38,14 @@ for i=1:2160
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-# mina=minimum(train_xA)
-# minb=minimum(train_xB)
+train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
+train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
 
-# maxa=maximum(train_xA)
-# maxb=maximum(train_xB)
+maxa=maximum(abs.(train_xA))
+maxb=maximum(abs.(train_xB))
 
-# train_xA = (train_xA .- mina)./(maxa-mina) 
-# train_xB = (train_xB .- minb)./(maxb-minb) 
+train_xA = (train_xA )./(maxa) 
+train_xB = (train_xB )./(maxb) 
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
@@ -369,72 +369,72 @@ for e=1:n_epochs# epoch loop
     fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
 
     
-    # XB = (XB .*(maxb-minb)) .+ minb 
-    # XA = (XA .*(maxa-mina)) .+ mina
+    XB = XB.*maxb
+    XA = XA.*maxa
     
-    # fake_imagesBfromAt = (fake_imagesBfromAt .*(maxb-minb)) .+ minb 
-    # fake_imagesAfromBt = (fake_imagesAfromBt .*(maxa-mina)) .+ mina
+    fake_imagesBfromAt = fake_imagesBfromAt.*maxb 
+    fake_imagesAfromBt = fake_imagesAfromBt.*maxa
 
-    plot_sdata(XB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel+den from vel 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred1_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel from vel+den 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred1_$e.png")
     plt.close()
 
 
 
-    plot_sdata(XB[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test2.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel+den from vel 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred2_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test2.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,2]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel from vel+den 2_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred2_$e.png")
     plt.close()
 
 
 
-    plot_sdata(XB[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XB[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel+den ")
     plt.savefig("../plots/Shot_rec_df/vel+den data test3.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromAt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel+den from vel 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred3_$e.png")
     plt.close()
 
-    plot_sdata(XA[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(XA[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title("data test vel ")
     plt.savefig("../plots/Shot_rec_df/vel data test3.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromBt[:,:,1,3]|>cpu,(14.06,4.976),perc=95,vmax=0.02,cbar=true)
     plt.title.(" pred vel from vel+den 3_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred3_$e.png")
     plt.close()
