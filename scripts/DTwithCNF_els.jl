@@ -38,6 +38,15 @@ for i=1:2160
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
+train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
+train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
+
+maxa=maximum(abs.(train_xA))
+maxb=maximum(abs.(train_xB))
+
+train_xA = (train_xA )./(maxa) 
+train_xB = (train_xB )./(maxb)
+
 # Define the generator and discriminator networks
 
 device = gpu #GPU does not accelerate at this small size. quicker on cpu
@@ -359,6 +368,12 @@ for e=1:n_epochs# epoch loop
 
     fake_imagesAfromBt = fake_images[:,:,:,imgs+1:end]
     fake_imagesBfromAt = fake_images[:,:,:,1:imgs]
+
+    XB = XB.*maxb
+    XA = XA.*maxa
+    
+    fake_imagesBfromAt = fake_imagesBfromAt.*maxb 
+    fake_imagesAfromBt = fake_imagesAfromBt.*maxa
 
     plot_sdata(XB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title("data test vel+den ")

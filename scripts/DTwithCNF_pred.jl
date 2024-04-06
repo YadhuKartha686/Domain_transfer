@@ -31,7 +31,8 @@ train_y = jldopen(data_path, "r")["Y"]
   
 train_xA = zeros(Float32, nx, ny, 1,8)
 train_xB = zeros(Float32, nx, ny, 1,8)
-img=2005
+
+img=2006
   
 for i=1:8
     sigma = 1.0
@@ -39,14 +40,15 @@ for i=1:8
     train_xB[:,:,:,i] = imresize(imfilter(train_X[:,:,2160+img+i],KernelFactors.gaussian((sigma,sigma))),(nx,ny))
 end
 
-mina=minimum(train_xA)
-minb=minimum(train_xB)
 
-maxa=maximum(train_xA)
-maxb=maximum(train_xB)
+# train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
+# train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
 
-train_xA = (train_xA .- mina)./(maxa-mina) 
-train_xB = (train_xB .- minb)./(maxb-minb) 
+# maxa=maximum(abs.(train_xA))
+# maxb=maximum(abs.(train_xB))
+
+# train_xA = (train_xA )./(maxa) 
+# train_xB = (train_xB )./(maxb) 
 
 # Define the generator and discriminator networks
 
@@ -129,8 +131,8 @@ end
 fake_imagesAfromBavg = fake_imagesAfromBavg./32
 fake_imagesBfromAavg = fake_imagesBfromAavg./32
 
-fake_imagesBfromAavg = (fake_imagesBfromAavg .*(maxb-minb)) .+ minb 
-fake_imagesAfromBavg = (fake_imagesAfromBavg .*(maxa-mina)) .+ mina
+# fake_imagesBfromAavg = (fake_imagesBfromAavg.*maxb
+# fake_imagesAfromBavg = (fake_imagesAfromBavg.*maxa
 
 e=1
 
