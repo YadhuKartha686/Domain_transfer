@@ -450,6 +450,15 @@ for e=1:n_epochs# epoch loop
       plt.legend()
       plt.savefig("../plots/Shot_rec_df/mseofimg$e.png")
       plt.close()
+
+      plt.plot((fake_imagesBfromAt[20:end,64,1,1]|>cpu),label="veldenpredicted")
+    plt.plot((XB[20:end,64,1,1]|>cpu),label="truevelden")
+    plt.plot((XA[20:end,64,1,1]|>cpu),label="truevel")
+    plt.title.(" difference in fakeB and XB trace ")
+    plt.legend()
+    plt.savefig("../plots/Shot_rec_df/veldifftrace$e.png")    
+    plt.close()
+
     end
 
     if mod(e,10) == 0

@@ -32,7 +32,7 @@ train_y = jldopen(data_path, "r")["Y"]
 train_xA = zeros(Float32, nx, ny, 1,8)
 train_xB = zeros(Float32, nx, ny, 1,8)
 
-img=2006
+img=2004
   
 for i=1:8
     sigma = 1.0
@@ -41,18 +41,18 @@ for i=1:8
 end
 
 
-# train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
-# train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
+train_xA = train_xA.* (abs.(train_xA) .> 5e-6)
+train_xB = train_xB.* (abs.(train_xB) .> 5e-6)
 
-# maxa=maximum(abs.(train_xA))
-# maxb=maximum(abs.(train_xB))
+maxa=maximum(abs.(train_xA))
+maxb=maximum(abs.(train_xB))
 
-# train_xA = (train_xA )./(maxa) 
-# train_xB = (train_xB )./(maxb) 
+train_xA = (train_xA )./(maxa) 
+train_xB = (train_xB )./(maxb) 
 
 # Define the generator and discriminator networks
 
-path = "/home/ykartha6/juliacode/Domain_transfer/Bestresults/K=10_L=3_e=350_lr=1e-5_n_hidden=512.jld2"
+path = "/home/ykartha6/juliacode/Domain_transfer/Bestresults/K=10_L=3_e=310_lr=5e-5_n_hidden=512.jld2"
 function get_network(path)
   # test parameters
   batch_size = 2
@@ -76,7 +76,7 @@ end
 G = get_network(path)
 generator = G |> gpu
 device=gpu
-imgs = 32
+imgs = 8
 n_train = 8
 
 n_batches = cld(8,8)
@@ -88,18 +88,10 @@ YB = ones(Float32,nx,ny,1,imgs) .*7 + randn(Float32,nx,ny,1,imgs) ./1000
 idx_eA = reshape(randperm(n_train), 8, n_batches)
 idx_eB = reshape(randperm(n_train), 8, n_batches)
 
-XA = train_xA[:, :, :, idx_eA[:,1]] + randn(Float32,(nx,ny,1,8)) ./1f5
-XB = train_xB[:, :, :, idx_eB[:,1]] + randn(Float32,(nx,ny,1,8)) ./1f5
+XA = train_xA[:, :, :,:] + randn(Float32,(nx,ny,1,8)) ./1f5
+XB = train_xB[:, :, :,:] + randn(Float32,(nx,ny,1,8)) ./1f5
 
-XAs = zeros(Float32,(nx,ny,1,imgs))
-XBs = zeros(Float32,(nx,ny,1,imgs))
-
-for i=1:32
-  XAs[:,:,:,i]= XA[:,:,:,1]
-  XBs[:,:,:,i]= XB[:,:,:,1]
-end
-
-X = cat(XAs, XBs,dims=4)
+X = cat(XA, XB,dims=4)
 Y = cat(YA, YB,dims=4)
 
 Zx, Zy, lgdet = generator.forward(X|> device, Y|> device)  #### concat so that network normalizes ####
@@ -118,21 +110,24 @@ fake_images,invcall = generator.inverse(Zx|>device,Zy1)  ###### generating image
 fake_imagesAfromB = fake_images[:,:,:,imgs+1:end]
 fake_imagesBfromA = fake_images[:,:,:,1:imgs]
 
-fake_imagesAfromBavg=  zeros(Float32,(nx,ny,1,1))
-fake_imagesBfromAavg=  zeros(Float32,(nx,ny,1,1))
-for i=1:32
-  a = fake_imagesAfromB[:,:,1,i]|>cpu
-  fake_imagesAfromBavg +=a
+# fake_imagesAfromBavg=  zeros(Float32,(nx,ny,1,1))
+# fake_imagesBfromAavg=  zeros(Float32,(nx,ny,1,1))
+# for i=1:32
+#   a = fake_imagesAfromB[:,:,1,i]|>cpu
+#   fake_imagesAfromBavg +=a
 
-  b = fake_imagesBfromA[:,:,1,i]|>cpu
-  fake_imagesBfromAavg +=b
-end
+#   b = fake_imagesBfromA[:,:,1,i]|>cpu
+#   fake_imagesBfromAavg +=b
+# end
 
-fake_imagesAfromBavg = fake_imagesAfromBavg./32
-fake_imagesBfromAavg = fake_imagesBfromAavg./32
+# fake_imagesAfromBavg = fake_imagesAfromBavg./32
+# fake_imagesBfromAavg = fake_imagesBfromAavg./32
 
-# fake_imagesBfromAavg = (fake_imagesBfromAavg.*maxb
-# fake_imagesAfromBavg = (fake_imagesAfromBavg.*maxa
+XB = XB.*maxb
+XA = XA.*maxa
+
+fake_imagesBfromA = fake_imagesBfromA.*maxb
+fake_imagesAfromB = fake_imagesAfromB.*maxa
 
 e=1
 
@@ -142,7 +137,7 @@ e=1
     plt.savefig("../plots/Shot_rec_df/vel+den data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesBfromAavg[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesBfromA[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel+den from vel 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel+den test pred1_$e.png")
     plt.close()
@@ -152,22 +147,22 @@ e=1
     plt.savefig("../plots/Shot_rec_df/vel data test1.png")
     plt.close()
 
-    plot_sdata(fake_imagesAfromBavg[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
+    plot_sdata(fake_imagesAfromB[:,:,1,1]|>cpu,(14.06,4.976),perc=95,vmax=0.03,cbar=true)
     plt.title.(" pred vel from vel+den 1_$e ")
     plt.savefig("../plots/Shot_rec_df/vel test pred1_$e.png")
     plt.close()
 
-    plot_sdata((XB[:,:,1,1]|>cpu)-(fake_imagesAfromBavg[:,:,1,1]|>cpu),(14.06,4.976),cbar=true)
+    plot_sdata((XB[:,:,1,1]|>cpu)-(fake_imagesAfromB[:,:,1,1]|>cpu),(14.06,4.976),cbar=true)
     plt.title("difference in Xb and fakeAB ")
     plt.savefig("../plots/Shot_rec_df/vel+dendiff.png")
     plt.close()
 
-    plot_sdata((XB[:,:,1,1]|>cpu)-(fake_imagesBfromAavg[:,:,1,1]|>cpu),(14.06,4.976),cbar=true)
+    plot_sdata((XB[:,:,1,1]|>cpu)-(fake_imagesBfromA[:,:,1,1]|>cpu),(14.06,4.976),cbar=true)
     plt.title.(" difference in fake velden and domain_transfe_velden ")
     plt.savefig("../plots/Shot_rec_df/veldendiff_$e.png")
     plt.close()
 
-    plt.plot((fake_imagesBfromAavg[20:end,64,1,1]|>cpu),label="veldenpredicted")
+    plt.plot((fake_imagesBfromA[20:end,64,1,1]|>cpu),label="veldenpredicted")
     plt.plot((XB[20:end,64,1,1]|>cpu),label="truevelden")
     plt.plot((XA[20:end,64,1,1]|>cpu),label="truevel")
     plt.title.(" difference in fakeB and XB trace ")
