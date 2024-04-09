@@ -64,36 +64,55 @@ using Random; Random.seed!(1)
 #   sigmoid
 #   ) 
 
+function discriminator_block(in_channels, out_channels, stride, padding, use_norm=true)
+  layers = [Conv((4, 4), in_channels => out_channels, stride=stride, pad=padding, leakyrelu(0.2))]
+  if use_norm
+      push!(layers, BatchNorm(out_channels, relu))
+  end
+  return layers
+end
 
-model = Chain(
-  # First convolutional layer
-  Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
-  x -> maxpool(x, (2,2)), # Aggressive pooling to reduce dimensions
-  
-  # Second convolutional layer
-  Conv((5, 5), 32=>64, relu, pad=(2,2), stride=1),
-  x -> maxpool(x, (2,2)), # Further reduction
-  
-  # Third convolutional layer
-  Conv((5, 5), 64=>128, relu, pad=1),
-  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
-  # Fourth convolutional layer
-  Conv((3, 3), 128=>64, relu, pad=1),
-  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+function PatchGANDiscriminator()
+  return Chain(
+      discriminator_block(1, 64, 2, 1, false),  # First layer, no normalization, input has 1 channel
+      discriminator_block(64, 128, 2, 1),
+      discriminator_block(128, 256, 2, 1),
+      Conv((4, 4), 256 => 1, stride=1, pad=1)  # Final layer reduces to 1 channel per patch
+      # No batch norm and activation in the final layer
+  )
+end
 
-  Conv((3, 3), 64=>64, relu, pad=1),
-  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+model = PatchGANDiscriminator()
+
+# model = Chain(
+#   # First convolutional layer
+#   Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
+#   x -> maxpool(x, (2,2)), # Aggressive pooling to reduce dimensions
   
-  # Flatten the output of the last convolutional layer before passing it to the dense layer
-  Flux.flatten,
+#   # Second convolutional layer
+#   Conv((5, 5), 32=>64, relu, pad=(2,2), stride=1),
+#   x -> maxpool(x, (2,2)), # Further reduction
   
-  # Fully connected layer
-  Dense(576, 512, relu),
+#   # Third convolutional layer
+#   Conv((5, 5), 64=>128, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+#   # Fourth convolutional layer
+#   Conv((3, 3), 128=>64, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+
+#   Conv((3, 3), 64=>64, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
   
-  # Output layer for binary classification
-  Dense(512, 1),
-  sigmoid
-)
+#   # Flatten the output of the last convolutional layer before passing it to the dense layer
+#   Flux.flatten,
+  
+#   # Fully connected layer
+#   Dense(576, 512, relu),
+  
+#   # Output layer for binary classification
+#   Dense(512, 1),
+#   sigmoid
+# )
 
 model = gpu(model)
 
@@ -103,6 +122,18 @@ n_epochs     = 20
 lr = 1f-3
 opt = Flux.Optimise.ADAM(lr) |> gpu
 loss(x, y) = mean(Flux.binarycrossentropy.(x, y))
+
+function patch_bce_loss(y_pred, y_true)
+  # Reshape if necessary to ensure we can compare predictions to labels
+  y_pred_flat = reshape(y_pred, :)
+  y_true_flat = reshape(y_true, :)
+  
+  # Compute BCE loss for each element
+  loss = binarycrossentropy.(y_pred_flat, y_true_flat)
+  
+  # Return the mean loss
+  return mean(loss)
+end
 
 
 
@@ -186,7 +217,7 @@ for e=1:n_epochs
         y = transpose(train_y[idx_e[:,b]])|>gpu
         grads = Flux.gradient(Flux.params(model)) do
           y_pred = model(x)
-          l = loss(y_pred,y)
+          l = patch_bce_loss(y_pred,y)
         end
         # epoch_loss +=Loss
         Flux.update!(opt,Flux.params(model),grads)
@@ -195,7 +226,7 @@ for e=1:n_epochs
         print("batch: $b, epoch: $e \n ")
         # Calculate accuracy for this batch
         y_pred = model(x)
-        epoch_loss += loss(y_pred,y)
+        epoch_loss += patch_bce_loss(y_pred,y)
         correct_predictions += sum(round.(y_pred) .== y)
     end
 
@@ -209,7 +240,7 @@ for e=1:n_epochs
       print("batch: $b \n")
       # Calculate accuracy for this batch
       y_pred = model(x)
-      epoch_loss_test += loss(y_pred,y)
+      epoch_loss_test += patch_bce_loss(y_pred,y)
       correct_predictions_test += sum(round.(y_pred) .== y)
       correct_predictions_testa += sum(abs.(y_pred-y))
       

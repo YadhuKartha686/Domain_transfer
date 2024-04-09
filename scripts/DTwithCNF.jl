@@ -59,6 +59,36 @@ chan_x = 1; chan_y = 1; L = 3; K = 10; n_hidden = 512 # Number of hidden channel
 # Create network
 G = NetworkConditionalGlow(chan_x, chan_y, n_hidden,  L, K; split_scales=true,activation=SigmoidLayer(low=low,high=1.0f0)) |> device;
 
+# model = Chain(
+#   # First convolutional layer
+#   Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
+#   x -> maxpool(x, (2,2)), # Aggressive pooling to reduce dimensions
+  
+#   # Second convolutional layer
+#   Conv((5, 5), 32=>64, relu, pad=(2,2), stride=1),
+#   x -> maxpool(x, (2,2)), # Further reduction
+  
+#   # Third convolutional layer
+#   Conv((5, 5), 64=>128, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+#   # Fourth convolutional layer
+#   Conv((3, 3), 128=>64, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+
+#   Conv((3, 3), 64=>64, relu, pad=1),
+#   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
+  
+#   # Flatten the output of the last convolutional layer before passing it to the dense layer
+#   Flux.flatten,
+  
+#   # Fully connected layer
+#   Dense(576, 512, relu),
+  
+#   # Output layer for binary classification
+#   Dense(512, 1),
+#   sigmoid
+# )
+
 model = Chain(
   # First convolutional layer
   Conv((7, 7), 1=>32, relu, pad=(3,3), stride=1),
@@ -75,42 +105,57 @@ model = Chain(
   Conv((3, 3), 128=>64, relu, pad=1),
   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
 
-  Conv((3, 3), 64=>64, relu, pad=1),
-  x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
-  
-  # Flatten the output of the last convolutional layer before passing it to the dense layer
-  Flux.flatten,
-  
-  # Fully connected layer
-  Dense(576, 512, relu),
-  
-  # Output layer for binary classification
-  Dense(512, 1),
-  sigmoid
-)
+  Conv((3, 3), 64=>1,relu, pad=2),
+  )
+
+# model = PatchGANDiscriminator()
 
 # Summary Network
-sum_net = true
-h2      = nothing
-unet_lev = 4
-n_c = 1
-n_in = 1
-if sum_net
-    h2 = Chain(Unet(n_c,n_in,unet_lev))
-    trainmode!(h2, true)
-    h2 = FluxBlock(h2)|> device
-end
+# sum_net = true
+# h2      = nothing
+# unet_lev = 4
+# n_c = 1
+# n_in = 1
+# if sum_net
+#     h2 = Chain(Unet(n_c,n_in,unet_lev))
+#     trainmode!(h2, true)
+#     h2 = FluxBlock(h2)|> device
+# end
 
+function patch_bce_loss(y_pred, y_true)
+  # Reshape if necessary to ensure we can compare predictions to labels
+  y_pred_flat = reshape(y_pred, :)
+  y_true_flat = reshape(y_true|>device, :)
+  
+  # Compute BCE loss for each element
+  loss = Flux.binarycrossentropy.(y_pred_flat, y_true_flat)
+  
+  # Return the mean loss
+  return mean(loss)
+end
 
 # Define the loss functions
 function Dissloss(real_output, fake_output)
-  real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
-  fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
+  real_labels = ones(size(real_output))
+  fake_labels = zeros(size(fake_output))
+
+  # Calculate loss
+  real_loss = patch_bce_loss(real_output, real_labels|>device)
+  fake_loss = patch_bce_loss(fake_output, fake_labels|>device)
+  
+  # real_loss = mean(Flux.binarycrossentropy.(real_output, 1f0))
+  # fake_loss = mean(Flux.binarycrossentropy.(fake_output, 0f0))
   return 0.5f0*(real_loss + fake_loss)
 end
 
+# function Genloss(fake_output) 
+#   return mean(Flux.binarycrossentropy.(fake_output, 1f0))
+# end
+
+
 function Genloss(fake_output) 
-  return mean(Flux.binarycrossentropy.(fake_output, 1f0))
+  fake_labels = ones(size(fake_output))
+  return patch_bce_loss(fake_output, fake_labels|>device)
 end
 
 
@@ -146,32 +191,6 @@ optimizer_da = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batch
 optimizer_db = Flux.Optimiser(ClipNorm(clipnorm_val),ExpDecay(lr, .99f0, n_batches*lr_step, 1f-6), ADAM(lrd))
 lossnrm      = []; logdet_train = []; 
 factor = 1f0
-
-function z_shape_simple(G, ZX_test)
-  Z_save, ZX = split_states(ZX_test[:], G.Z_dims)
-  for i=G.L:-1:1
-      if i < G.L
-          ZX = tensor_cat(ZX, Z_save[i])
-      end
-      ZX = G.squeezer.inverse(ZX) 
-  end
-  ZX
-end
-
-function z_shape_simple_forward(G, X)
-  G.split_scales && (Z_save = array_of_array(X, G.L-1))
-  for i=1:G.L
-      (G.split_scales) && (X = G.squeezer.forward(X))
-      if G.split_scales && i < G.L    # don't split after last iteration
-          X, Z = tensor_split(X)
-          Z_save[i] = Z
-          G.Z_dims[i] = collect(size(Z))
-      end
-  end
-  G.split_scales && (X = cat_states(Z_save, X))
-  return X
-end
-
 
 n_epochs     = 1000
 for e=1:n_epochs# epoch loop
@@ -293,27 +312,27 @@ for e=1:n_epochs# epoch loop
           push!(dissloss, avg_epoch_lossd)
         end
 
-        if mod(e,5)==0 && mod(b,n_batches)==0
-          x = train_xA[:,:,:,2001:end]
-          x .+= 0.001*randn(Float32, size(x))
-          x = x |> gpu
-          y = transpose(ones(Float32,160))|>gpu
-          # Calculate accuracy for this batch
-          y_pred = discriminatorA(x)
-          correct_predictions_testa = sum(abs.(y_pred-y))/160
+      #   if mod(e,5)==0 && mod(b,n_batches)==0
+      #     x = train_xA[:,:,:,2001:end]
+      #     x .+= 0.001*randn(Float32, size(x))
+      #     x = x |> gpu
+      #     y = transpose(ones(Float32,160))|>gpu
+      #     # Calculate accuracy for this batch
+      #     y_pred = discriminatorA(x)
+      #     correct_predictions_testa = sum(abs.(y_pred-y))/160
 
-          println("l2norm of Da: ",correct_predictions_testa)
+      #     println("l2norm of Da: ",correct_predictions_testa)
 
-          x = train_xB[:,:,:,2001:end]
-          x .+= 0.001*randn(Float32, size(x))
-          x = x |> gpu
-          y = transpose(ones(Float32,160))|>gpu
-          # Calculate accuracy for this batch
-          y_pred = discriminatorB(x)
-          correct_predictions_testb = sum(abs.(y_pred-y))/160
+      #     x = train_xB[:,:,:,2001:end]
+      #     x .+= 0.001*randn(Float32, size(x))
+      #     x = x |> gpu
+      #     y = transpose(ones(Float32,160))|>gpu
+      #     # Calculate accuracy for this batch
+      #     y_pred = discriminatorB(x)
+      #     correct_predictions_testb = sum(abs.(y_pred-y))/160
 
-          println("l2norm of Db: ",correct_predictions_testb)
-       end
+      #     println("l2norm of Db: ",correct_predictions_testb)
+      #  end
 
         if mod(e,10) == 0 && mod(b,n_batches)==0
           plt.plot(lossnrm)
