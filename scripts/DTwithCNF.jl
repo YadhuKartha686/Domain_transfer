@@ -105,7 +105,7 @@ model = Chain(
   Conv((3, 3), 128=>64, relu, pad=1),
   x -> maxpool(x, (2,2)), # Final pooling to reduce to a very low dimension
 
-  Conv((3, 3), 64=>1,relu, pad=2),
+  Conv((3, 3), 64=>1,sigmoid, pad=2),
   )
 
 # model = PatchGANDiscriminator()
